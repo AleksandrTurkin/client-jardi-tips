@@ -1,4 +1,7 @@
-﻿<Router AppAssembly="@typeof(App).Assembly" NotFoundPage="typeof(Pages.NotFound)">
+﻿<link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet" />
+<link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
+
+<Router AppAssembly="@typeof(App).Assembly" NotFoundPage="typeof(Pages.NotFound)">
     <Found Context="routeData">
         <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)"/>
         <FocusOnNavigate RouteData="@routeData" Selector="h1" />

@@ -2,6 +2,24 @@
 
 <PageTitle>Home</PageTitle>
 
-<h1>Hello, world!</h1>
+<MudText Typo="Typo.h3" GutterBottom="true">Welcome to JardiTips</MudText>
+<MudText Typo="Typo.body1" Class="mb-6">This starter application now uses MudBlazor components.</MudText>
 
-Welcome to your new app.
+<MudGrid Spacing="3">
+    <MudItem xs="12" sm="6">
+        <MudPaper Class="pa-6" Elevation="2">
+            <MudIcon Icon="@Icons.Material.Filled.AddCircle" Color="Color.Primary" Size="Size.Large" Class="mb-3" />
+            <MudText Typo="Typo.h6">Interactive counter</MudText>
+            <MudText Typo="Typo.body2" Class="mb-4">Try a MudBlazor button and badge on the counter page.</MudText>
+            <MudButton Href="counter" Variant="Variant.Filled" Color="Color.Primary">Open counter</MudButton>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" sm="6">
+        <MudPaper Class="pa-6" Elevation="2">
+            <MudIcon Icon="@Icons.Material.Filled.WbSunny" Color="Color.Warning" Size="Size.Large" Class="mb-3" />
+            <MudText Typo="Typo.h6">Weather data</MudText>
+            <MudText Typo="Typo.body2" Class="mb-4">View sample forecast data in a MudBlazor table.</MudText>
+            <MudButton Href="weather" Variant="Variant.Outlined" Color="Color.Primary">Open weather</MudButton>
+        </MudPaper>
+    </MudItem>
+</MudGrid>

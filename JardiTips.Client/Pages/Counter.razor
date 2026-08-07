@@ -2,11 +2,17 @@
 
 <PageTitle>Counter</PageTitle>
 
-<h1>Counter</h1>
-
-<p role="status">Current count: @currentCount</p>
-
-<button class="btn btn-primary" @onclick="IncrementCount">Click me</button>
+<MudText Typo="Typo.h3" GutterBottom="true">Counter</MudText>
+<MudPaper Class="pa-6" MaxWidth="400px" Elevation="2">
+    <MudText Typo="Typo.body1" Class="mb-4">Click the button to increment the current count.</MudText>
+    <MudBadge Content="@currentCount" Color="Color.Primary" Overlap="true" Class="mb-4">
+        <MudIcon Icon="@Icons.Material.Filled.TouchApp" Size="Size.Large" />
+    </MudBadge>
+    <MudText Typo="Typo.h6" Class="mb-4">Current count: @currentCount</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="IncrementCount">
+        Increment
+    </MudButton>
+</MudPaper>
 
 @code {
     private int currentCount = 0;
