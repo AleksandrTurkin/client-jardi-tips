@@ -114,6 +114,12 @@ Follow this dependency direction:
 - Keep feature-specific behavior out of shared and generic infrastructure.
 - Do not introduce Rx.NET, IndexedDB, or offline synchronization when a simple local `async` operation is sufficient.
 
+## Version Control and Review
+
+- Never create, amend, or push Git commits.
+- Leave all modifications uncommitted so the user can review them first.
+- Do not stage changes unless the user explicitly requests it.
+
 ## Validation
 
 - Build `JardiTips.Client/JardiTips.Client.csproj` directly after changes.
