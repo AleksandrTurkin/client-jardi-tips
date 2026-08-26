@@ -18,4 +18,18 @@
     <ServiceWorker Include="wwwroot\service-worker.js" PublishedContent="wwwroot\service-worker.published.js" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Application\" />
+    <Folder Include="Application\Abstractions\" />
+    <Folder Include="Application\Coordination\" />
+    <Folder Include="Features\" />
+    <Folder Include="Infrastructure\" />
+    <Folder Include="Infrastructure\Api\" />
+    <Folder Include="Infrastructure\Browser\" />
+    <Folder Include="Infrastructure\IndexedDb\" />
+    <Folder Include="Shared\" />
+    <Folder Include="Shared\Components\" />
+    <Folder Include="Shared\Styling\" />
+  </ItemGroup>
+
 </Project>
