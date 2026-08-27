@@ -30,6 +30,7 @@
     <Folder Include="Shared\" />
     <Folder Include="Shared\Components\" />
     <Folder Include="Shared\Styling\" />
+    <Folder Include="wwwroot\sample-data\" />
   </ItemGroup>
 
 </Project>

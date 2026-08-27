@@ -1,0 +1,37 @@
+using JardiTips.Client.Application.Abstractions;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+
+namespace JardiTips.Client.Infrastructure.Api;
+
+public static class ApiServiceCollectionExtensions
+{
+    public static IServiceCollection AddApiInfrastructure(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(configuration);
+
+        services.AddOptions<ApiOptions>()
+            .Bind(configuration.GetSection(ApiOptions.SectionName))
+            .Validate(
+                options => ApiOptions.TryCreateBaseUri(options.BaseUrl, out _),
+                $"{ApiOptions.SectionName}:BaseUrl must be an absolute HTTP or HTTPS URL.");
+
+        services.TryAddScoped<IAccessTokenProvider, AnonymousAccessTokenProvider>();
+        services.AddScoped<HttpClient>(serviceProvider =>
+        {
+            var options = serviceProvider
+                .GetRequiredService<Microsoft.Extensions.Options.IOptions<ApiOptions>>()
+                .Value;
+
+            return new HttpClient
+            {
+                BaseAddress = options.CreateBaseUri()
+            };
+        });
+        services.AddScoped<IApiClient, ApiClient>();
+
+        return services;
+    }
+}
