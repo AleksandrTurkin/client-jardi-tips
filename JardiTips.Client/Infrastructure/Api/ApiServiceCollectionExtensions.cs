@@ -1,4 +1,6 @@
 using JardiTips.Client.Application.Abstractions;
+using JardiTips.Client.Application.Coordination;
+using JardiTips.Client.Infrastructure.IndexedDb;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace JardiTips.Client.Infrastructure.Api;
@@ -31,6 +33,14 @@ public static class ApiServiceCollectionExtensions
             };
         });
         services.AddScoped<IApiClient, ApiClient>();
+        services.AddScoped<ICategoryApiSource, CategoryApiSource>();
+        services.AddScoped<BrowserDatabase>();
+        services.AddScoped<ICategoryStore, IndexedDbCategoryStore>();
+        services.AddScoped<CategoryQueryService>();
+        services.AddScoped<ICategoryQueries>(serviceProvider =>
+            serviceProvider.GetRequiredService<CategoryQueryService>());
+        services.AddScoped<ICategoryStartup>(serviceProvider =>
+            serviceProvider.GetRequiredService<CategoryQueryService>());
 
         return services;
     }
