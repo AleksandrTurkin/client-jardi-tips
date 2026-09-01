@@ -2,8 +2,12 @@
     min-width: 0;
 }
 
+::deep .category-section__paper {
+    padding: 24px;
+}
+
 .category-section--top {
-    margin-top: 4rem;
+    margin-top: 32px;
 }
 
 .category-section__header {
@@ -37,7 +41,7 @@
     display: flex;
     gap: 24px;
     margin-inline: -4px;
-    padding: 4px 4px 20px;
+    padding: 4px 4px 8px;
     overflow-x: auto;
     overscroll-behavior-inline: contain;
     scroll-snap-type: inline mandatory;
@@ -72,8 +76,12 @@
 }
 
 @media (max-width: 599.98px) {
+    ::deep .category-section__paper {
+        padding: 16px;
+    }
+
     .category-section--top {
-        margin-top: 3rem;
+        margin-top: 24px;
     }
 
     ::deep .category-section__title {

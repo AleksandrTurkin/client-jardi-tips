@@ -58,65 +58,73 @@ else if (categories.Count == 0)
 }
 else
 {
-    <section class="category-section" aria-labelledby="new-releases-title">
-        <div class="category-section__header">
-            <MudText Typo="Typo.h3" HtmlTag="h1" id="new-releases-title" Class="category-section__title">
-                New Releases
-            </MudText>
-            <div class="category-section__controls">
-                <MudIconButton Icon="@Icons.Material.Rounded.ChevronLeft"
-                               Color="Color.Primary"
-                               Variant="Variant.Outlined"
-                               aria-label="Scroll new releases left"
-                               aria-controls="new-releases-scroller"
-                               OnClick="@(() => ScrollAsync(newReleasesScroller, -1))" />
-                <MudIconButton Icon="@Icons.Material.Rounded.ChevronRight"
-                               Color="Color.Primary"
-                               Variant="Variant.Outlined"
-                               aria-label="Scroll new releases right"
-                               aria-controls="new-releases-scroller"
-                               OnClick="@(() => ScrollAsync(newReleasesScroller, 1))" />
-            </div>
-        </div>
-        <div id="new-releases-scroller" class="category-scroller" aria-label="New releases" @ref="newReleasesScroller">
-            @foreach (var category in categories)
-            {
-                <div class="category-scroller__item">
-                    <CategoryCard Category="category" />
+    <div class="category-section__paper-wrapper">
+        <MudPaper Square="true" Elevation="3" Class="category-section__paper">
+            <section class="category-section" aria-labelledby="new-releases-title">
+                <div class="category-section__header">
+                    <MudText Typo="Typo.h3" HtmlTag="h1" id="new-releases-title" Class="category-section__title">
+                        New Releases
+                    </MudText>
+                    <div class="category-section__controls">
+                        <MudIconButton Icon="@Icons.Material.Rounded.ChevronLeft"
+                                       Color="Color.Primary"
+                                       Variant="Variant.Outlined"
+                                       aria-label="Scroll new releases left"
+                                       aria-controls="new-releases-scroller"
+                                       OnClick="@(() => ScrollAsync(newReleasesScroller, -1))" />
+                        <MudIconButton Icon="@Icons.Material.Rounded.ChevronRight"
+                                       Color="Color.Primary"
+                                       Variant="Variant.Outlined"
+                                       aria-label="Scroll new releases right"
+                                       aria-controls="new-releases-scroller"
+                                       OnClick="@(() => ScrollAsync(newReleasesScroller, 1))" />
+                    </div>
                 </div>
-            }
-        </div>
-    </section>
+                <div id="new-releases-scroller" class="category-scroller" aria-label="New releases" @ref="newReleasesScroller">
+                    @foreach (var category in categories)
+                    {
+                        <div class="category-scroller__item">
+                            <CategoryCard Category="category" />
+                        </div>
+                    }
+                </div>
+            </section>
+        </MudPaper>
+    </div>
 
-    <section class="category-section category-section--top" aria-labelledby="top-courses-title">
-        <div class="category-section__header">
-            <MudText Typo="Typo.h3" HtmlTag="h2" id="top-courses-title" Class="category-section__title">
-                Top Courses
-            </MudText>
-            <div class="category-section__controls">
-                <MudIconButton Icon="@Icons.Material.Rounded.ChevronLeft"
-                               Color="Color.Primary"
-                               Variant="Variant.Outlined"
-                               aria-label="Scroll top courses left"
-                               aria-controls="top-courses-scroller"
-                               OnClick="@(() => ScrollAsync(topCoursesScroller, -1))" />
-                <MudIconButton Icon="@Icons.Material.Rounded.ChevronRight"
-                               Color="Color.Primary"
-                               Variant="Variant.Outlined"
-                               aria-label="Scroll top courses right"
-                               aria-controls="top-courses-scroller"
-                               OnClick="@(() => ScrollAsync(topCoursesScroller, 1))" />
-            </div>
-        </div>
-        <div id="top-courses-scroller" class="category-scroller" aria-label="Top courses" @ref="topCoursesScroller">
-            @foreach (var category in topCategories)
-            {
-                <div class="category-scroller__item">
-                    <CategoryCard Category="category" />
+    <div class="category-section__paper-wrapper category-section--top">
+        <MudPaper Square="true" Elevation="3" Class="category-section__paper">
+            <section class="category-section" aria-labelledby="top-courses-title">
+                <div class="category-section__header">
+                    <MudText Typo="Typo.h3" HtmlTag="h2" id="top-courses-title" Class="category-section__title">
+                        Top Courses
+                    </MudText>
+                    <div class="category-section__controls">
+                        <MudIconButton Icon="@Icons.Material.Rounded.ChevronLeft"
+                                       Color="Color.Primary"
+                                       Variant="Variant.Outlined"
+                                       aria-label="Scroll top courses left"
+                                       aria-controls="top-courses-scroller"
+                                       OnClick="@(() => ScrollAsync(topCoursesScroller, -1))" />
+                        <MudIconButton Icon="@Icons.Material.Rounded.ChevronRight"
+                                       Color="Color.Primary"
+                                       Variant="Variant.Outlined"
+                                       aria-label="Scroll top courses right"
+                                       aria-controls="top-courses-scroller"
+                                       OnClick="@(() => ScrollAsync(topCoursesScroller, 1))" />
+                    </div>
                 </div>
-            }
-        </div>
-    </section>
+                <div id="top-courses-scroller" class="category-scroller" aria-label="Top courses" @ref="topCoursesScroller">
+                    @foreach (var category in topCategories)
+                    {
+                        <div class="category-scroller__item">
+                            <CategoryCard Category="category" />
+                        </div>
+                    }
+                </div>
+            </section>
+        </MudPaper>
+    </div>
 }
 
 @code {
