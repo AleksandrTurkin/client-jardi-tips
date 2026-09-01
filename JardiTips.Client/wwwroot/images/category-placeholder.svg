@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" role="img" aria-labelledby="title description">
+  <title id="title">JardiTips category cover</title>
+  <desc id="description">A stylized garden landscape with leaves and sunlight</desc>
+  <defs>
+	<linearGradient id="sky" x1="0" y1="0" x2="1" y2="1">
+	  <stop offset="0" stop-color="#eef8e8"/>
+	  <stop offset="1" stop-color="#cce8c2"/>
+	</linearGradient>
+	<linearGradient id="hill" x1="0" y1="0" x2="0" y2="1">
+	  <stop offset="0" stop-color="#6fae63"/>
+	  <stop offset="1" stop-color="#3f7846"/>
+	</linearGradient>
+  </defs>
+  <rect width="800" height="450" fill="url(#sky)"/>
+  <circle cx="650" cy="105" r="52" fill="#f4c95d"/>
+  <path d="M0 350C130 255 235 270 355 350C470 245 610 235 800 340V450H0Z" fill="#8fc47e"/>
+  <path d="M0 395C170 305 330 335 430 390C560 300 675 315 800 380V450H0Z" fill="url(#hill)"/>
+  <path d="M400 350V205" fill="none" stroke="#315f3a" stroke-linecap="round" stroke-width="18"/>
+  <path d="M394 270C320 265 280 220 285 160C350 163 394 205 394 270Z" fill="#5f9f55"/>
+  <path d="M406 235C472 230 516 188 518 130C454 128 410 171 406 235Z" fill="#4b894d"/>
+</svg>

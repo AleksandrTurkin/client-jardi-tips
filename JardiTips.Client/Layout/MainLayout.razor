@@ -1,29 +1,34 @@
 ﻿@inherits LayoutComponentBase
+
 <MudThemeProvider />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
 
-<MudLayout>
-    <MudAppBar Elevation="1">
-        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="ToggleDrawer" />
-        <MudText Typo="Typo.h6">JardiTips</MudText>
-    </MudAppBar>
-    <MudDrawer @bind-Open="_drawerOpen" Elevation="1">
-        <NavMenu />
-    </MudDrawer>
-    <MudMainContent>
-        <MudContainer MaxWidth="MaxWidth.Large" Class="mt-6">
-            @Body
-        </MudContainer>
-    </MudMainContent>
-</MudLayout>
-
-@code {
-    private bool _drawerOpen = true;
-
-    private void ToggleDrawer()
-    {
-        _drawerOpen = !_drawerOpen;
-    }
-}
+<div class="layout-root">
+    <MudLayout>
+        <MudAppBar Elevation="0" Class="site-header">
+            <MudContainer MaxWidth="MaxWidth.Large" Class="site-header__content">
+                <MudButton Href="/"
+                           Variant="Variant.Text"
+                           Color="Color.Inherit"
+                           StartIcon="@Icons.Material.Filled.Home"
+                           Class="site-header__brand"
+                           aria-label="JardiTips home">
+                    JardiTips
+                </MudButton>
+                <MudSpacer />
+                <MudButton Variant="Variant.Outlined"
+                           Color="Color.Inherit"
+                           Class="site-header__sign-in">
+                    Sign In
+                </MudButton>
+            </MudContainer>
+        </MudAppBar>
+        <MudMainContent>
+            <MudContainer MaxWidth="MaxWidth.Large" Class="site-main">
+                @Body
+            </MudContainer>
+        </MudMainContent>
+    </MudLayout>
+</div>

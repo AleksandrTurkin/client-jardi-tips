@@ -1,25 +1,165 @@
 ﻿@page "/"
+@using JardiTips.Client.Application.Abstractions
+@using JardiTips.Client.Features.Categories.Models
+@using JardiTips.Client.Shared.Components
+@implements IDisposable
+@inject ICategoryQueries CategoryQueries
+@inject ILogger<Home> Logger
 
-<PageTitle>Home</PageTitle>
+<PageTitle>JardiTips</PageTitle>
 
-<MudText Typo="Typo.h3" GutterBottom="true">Welcome to JardiTips</MudText>
-<MudText Typo="Typo.body1" Class="mb-6">This starter application now uses MudBlazor components.</MudText>
+@if (isLoading)
+{
+    <div role="status" aria-label="Loading categories">
+        <section class="category-section" aria-hidden="true">
+            <MudSkeleton SkeletonType="SkeletonType.Text" Animation="Animation.Wave" Width="240px" Height="52px" Class="category-section__skeleton-title" />
+            <div class="new-releases">
+                @for (var index = 0; index < 3; index++)
+                {
+                    <div class="new-releases__item">
+                        <CategoryCardSkeleton />
+                    </div>
+                }
+            </div>
+        </section>
 
-<MudGrid Spacing="3">
-    <MudItem xs="12" sm="6">
-        <MudPaper Class="pa-6" Elevation="2">
-            <MudIcon Icon="@Icons.Material.Filled.AddCircle" Color="Color.Primary" Size="Size.Large" Class="mb-3" />
-            <MudText Typo="Typo.h6">Interactive counter</MudText>
-            <MudText Typo="Typo.body2" Class="mb-4">Try a MudBlazor button and badge on the counter page.</MudText>
-            <MudButton Href="counter" Variant="Variant.Filled" Color="Color.Primary">Open counter</MudButton>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="12" sm="6">
-        <MudPaper Class="pa-6" Elevation="2">
-            <MudIcon Icon="@Icons.Material.Filled.WbSunny" Color="Color.Warning" Size="Size.Large" Class="mb-3" />
-            <MudText Typo="Typo.h6">Weather data</MudText>
-            <MudText Typo="Typo.body2" Class="mb-4">View sample forecast data in a MudBlazor table.</MudText>
-            <MudButton Href="weather" Variant="Variant.Outlined" Color="Color.Primary">Open weather</MudButton>
-        </MudPaper>
-    </MudItem>
-</MudGrid>
+        <section class="category-section category-section--top" aria-hidden="true">
+            <MudSkeleton SkeletonType="SkeletonType.Text" Animation="Animation.Wave" Width="210px" Height="52px" Class="category-section__skeleton-title" />
+            <div class="top-courses-carousel-shell top-courses-carousel-shell--loading">
+                <CategoryCardSkeleton />
+            </div>
+        </section>
+    </div>
+}
+else if (hasLoadError)
+{
+    <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Class="home-alert">
+        <MudText Typo="Typo.body1">Categories could not be loaded. Please try again.</MudText>
+        <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="LoadCategoriesAsync" Class="mt-2">
+            Try again
+        </MudButton>
+    </MudAlert>
+}
+else if (categories.Count == 0)
+{
+    <MudPaper Outlined="true" Class="home-state home-state--empty">
+        <MudIcon Icon="@Icons.Material.Outlined.Yard" Color="Color.Primary" Size="Size.Large" />
+        <MudText Typo="Typo.h5">No categories yet</MudText>
+        <MudText Typo="Typo.body1" Color="Color.Secondary">
+            New gardening inspiration will appear here when it is available.
+        </MudText>
+    </MudPaper>
+}
+else
+{
+    <section class="category-section" aria-labelledby="new-releases-title">
+        <MudText Typo="Typo.h3" HtmlTag="h1" id="new-releases-title" Class="category-section__title">
+            New Releases
+        </MudText>
+        <div class="new-releases" aria-label="New releases">
+            @foreach (var category in categories)
+            {
+                <div class="new-releases__item">
+                    <CategoryCard Category="category" />
+                </div>
+            }
+        </div>
+    </section>
+
+    <section class="category-section category-section--top" aria-labelledby="top-courses-title">
+        <MudText Typo="Typo.h3" HtmlTag="h2" id="top-courses-title" Class="category-section__title">
+            Top Courses
+        </MudText>
+        <div class="top-courses-carousel-shell">
+            <MudCarousel TData="object"
+                         @bind-SelectedIndex="selectedTopCourseIndex"
+                         Class="top-courses-carousel"
+                         ShowArrows="false"
+                         ShowBullets="false"
+                         AutoCycle="false"
+                         EnableSwipeGesture="true">
+                @foreach (var category in topCategories)
+                {
+                    <MudCarouselItem @key="category.Id">
+                        <div class="top-courses-carousel__item">
+                            <CategoryCard Category="category" />
+                        </div>
+                    </MudCarouselItem>
+                }
+            </MudCarousel>
+            <div class="top-courses-carousel__indicators" aria-label="Choose a top course">
+                @for (var index = 0; index < topCategories.Count; index++)
+                {
+                    var indicatorIndex = index;
+                    var isSelected = indicatorIndex == selectedTopCourseIndex;
+
+                    <MudIconButton Icon="@(isSelected ? Icons.Material.Filled.Circle : Icons.Material.Outlined.Circle)"
+                                   Color="@(isSelected ? Color.Primary : Color.Default)"
+                                   Size="Size.Small"
+                                   aria-label="@($"Show top course {indicatorIndex + 1}")"
+                                   OnClick="@(() => selectedTopCourseIndex = indicatorIndex)" />
+                }
+            </div>
+        </div>
+    </section>
+}
+
+@code {
+    private const int PageSize = 100;
+    private readonly CancellationTokenSource disposalTokenSource = new();
+    private IReadOnlyList<CategoryDto> categories = [];
+    private IReadOnlyList<CategoryDto> topCategories = [];
+    private int selectedTopCourseIndex;
+    private bool isLoading = true;
+    private bool hasLoadError;
+
+    protected override Task OnInitializedAsync() => LoadCategoriesAsync();
+
+    private async Task LoadCategoriesAsync()
+    {
+        isLoading = true;
+        hasLoadError = false;
+
+        try
+        {
+            var loadedCategories = new List<CategoryDto>();
+            var visitedPageContexts = new HashSet<string>(StringComparer.Ordinal);
+            string? pageContext = null;
+
+            do
+            {
+                var page = await CategoryQueries.GetAsync(
+                    new CategoriesFilter(pageContext, PageSize),
+                    disposalTokenSource.Token);
+
+                loadedCategories.AddRange(page.Data);
+                pageContext = page.PageContext;
+            }
+            while (pageContext is not null && visitedPageContexts.Add(pageContext));
+
+            categories = loadedCategories
+                .OrderByDescending(category => category.UpdatedAt)
+                .ToList();
+            topCategories = categories.Take(4).ToList();
+            selectedTopCourseIndex = 0;
+        }
+        catch (OperationCanceledException) when (disposalTokenSource.IsCancellationRequested)
+        {
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to load categories for the home page.");
+            hasLoadError = true;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    public void Dispose()
+    {
+        disposalTokenSource.Cancel();
+        disposalTokenSource.Dispose();
+    }
+}

@@ -1,0 +1,41 @@
+@using JardiTips.Client.Features.Categories.Models
+
+<MudCard Class="category-card" Elevation="1">
+    <div class="category-card__media">
+        <img src="@CoverImageSource"
+             alt="@($"Cover for {Category.Name}")"
+             loading="lazy"
+             @onerror="HandleImageError" />
+    </div>
+    <MudCardContent Class="category-card__content">
+        <MudText Typo="Typo.h6" Class="category-card__title">@Category.Name</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="category-card__description">
+            @Category.Description
+        </MudText>
+    </MudCardContent>
+    <MudCardActions Class="category-card__actions">
+        <MudIconButton Icon="@Icons.Material.Outlined.FavoriteBorder"
+                       Disabled="true"
+                       Color="Color.Default"
+                       aria-label="Like unavailable" />
+    </MudCardActions>
+</MudCard>
+
+@code {
+    private const string PlaceholderImage = "images/category-placeholder.svg";
+    private string? failedImageUrl;
+
+    [Parameter, EditorRequired]
+    public CategoryDto Category { get; set; } = default!;
+
+    private string CoverImageSource => string.IsNullOrWhiteSpace(Category.CoverImageUrl)
+        || string.Equals(Category.CoverImageUrl, failedImageUrl, StringComparison.Ordinal)
+            ? PlaceholderImage
+            : Category.CoverImageUrl;
+
+    private void HandleImageError()
+    {
+        if (!string.Equals(CoverImageSource, PlaceholderImage, StringComparison.Ordinal))
+            failedImageUrl = Category.CoverImageUrl;
+    }
+}
