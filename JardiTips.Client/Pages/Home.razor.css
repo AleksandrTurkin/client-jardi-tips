@@ -6,10 +6,27 @@
     margin-top: 4rem;
 }
 
-::deep .category-section__title {
+.category-section__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
     margin-bottom: 1.5rem;
+}
+
+::deep .category-section__title {
     font-weight: 700;
     letter-spacing: -0.035em;
+}
+
+.category-section__controls {
+    display: flex;
+    flex: 0 0 auto;
+    gap: 8px;
+}
+
+::deep .category-section__controls .mud-icon-button {
+    border-radius: 50%;
 }
 
 ::deep .category-section__skeleton-title {
@@ -60,8 +77,12 @@
     }
 
     ::deep .category-section__title {
-        margin-bottom: 1rem;
         font-size: 2rem;
+    }
+
+    .category-section__header {
+        gap: 12px;
+        margin-bottom: 1rem;
     }
 
     .category-scroller {

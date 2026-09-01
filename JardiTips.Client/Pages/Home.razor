@@ -2,11 +2,12 @@
 @using JardiTips.Client.Application.Abstractions
 @using JardiTips.Client.Features.Categories.Models
 @using JardiTips.Client.Shared.Components
-@implements IDisposable
+@implements IAsyncDisposable
 @inject ICategoryQueries CategoryQueries
+@inject IJSRuntime JS
 @inject ILogger<Home> Logger
 
-<PageTitle>JardiTips</PageTitle>
+<PageTitle>Jardi Tips</PageTitle>
 
 @if (isLoading)
 {
@@ -58,10 +59,26 @@ else if (categories.Count == 0)
 else
 {
     <section class="category-section" aria-labelledby="new-releases-title">
-        <MudText Typo="Typo.h3" HtmlTag="h1" id="new-releases-title" Class="category-section__title">
-            New Releases
-        </MudText>
-        <div class="category-scroller" aria-label="New releases">
+        <div class="category-section__header">
+            <MudText Typo="Typo.h3" HtmlTag="h1" id="new-releases-title" Class="category-section__title">
+                New Releases
+            </MudText>
+            <div class="category-section__controls">
+                <MudIconButton Icon="@Icons.Material.Rounded.ChevronLeft"
+                               Color="Color.Primary"
+                               Variant="Variant.Outlined"
+                               aria-label="Scroll new releases left"
+                               aria-controls="new-releases-scroller"
+                               OnClick="@(() => ScrollAsync(newReleasesScroller, -1))" />
+                <MudIconButton Icon="@Icons.Material.Rounded.ChevronRight"
+                               Color="Color.Primary"
+                               Variant="Variant.Outlined"
+                               aria-label="Scroll new releases right"
+                               aria-controls="new-releases-scroller"
+                               OnClick="@(() => ScrollAsync(newReleasesScroller, 1))" />
+            </div>
+        </div>
+        <div id="new-releases-scroller" class="category-scroller" aria-label="New releases" @ref="newReleasesScroller">
             @foreach (var category in categories)
             {
                 <div class="category-scroller__item">
@@ -72,10 +89,26 @@ else
     </section>
 
     <section class="category-section category-section--top" aria-labelledby="top-courses-title">
-        <MudText Typo="Typo.h3" HtmlTag="h2" id="top-courses-title" Class="category-section__title">
-            Top Courses
-        </MudText>
-        <div class="category-scroller" aria-label="Top courses">
+        <div class="category-section__header">
+            <MudText Typo="Typo.h3" HtmlTag="h2" id="top-courses-title" Class="category-section__title">
+                Top Courses
+            </MudText>
+            <div class="category-section__controls">
+                <MudIconButton Icon="@Icons.Material.Rounded.ChevronLeft"
+                               Color="Color.Primary"
+                               Variant="Variant.Outlined"
+                               aria-label="Scroll top courses left"
+                               aria-controls="top-courses-scroller"
+                               OnClick="@(() => ScrollAsync(topCoursesScroller, -1))" />
+                <MudIconButton Icon="@Icons.Material.Rounded.ChevronRight"
+                               Color="Color.Primary"
+                               Variant="Variant.Outlined"
+                               aria-label="Scroll top courses right"
+                               aria-controls="top-courses-scroller"
+                               OnClick="@(() => ScrollAsync(topCoursesScroller, 1))" />
+            </div>
+        </div>
+        <div id="top-courses-scroller" class="category-scroller" aria-label="Top courses" @ref="topCoursesScroller">
             @foreach (var category in topCategories)
             {
                 <div class="category-scroller__item">
@@ -89,12 +122,28 @@ else
 @code {
     private const int PageSize = 100;
     private readonly CancellationTokenSource disposalTokenSource = new();
+    private IJSObjectReference? module;
+    private ElementReference newReleasesScroller;
+    private ElementReference topCoursesScroller;
     private IReadOnlyList<CategoryDto> categories = [];
     private IReadOnlyList<CategoryDto> topCategories = [];
     private bool isLoading = true;
     private bool hasLoadError;
 
     protected override Task OnInitializedAsync() => LoadCategoriesAsync();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+            module = await JS.InvokeAsync<IJSObjectReference>("import", "./Pages/Home.razor.js");
+        
+    }
+
+    private async Task ScrollAsync(ElementReference scroller, int direction)
+    {
+        if (module is not null)
+            await module.InvokeVoidAsync("scrollCategories", scroller, direction);
+    }
 
     private async Task LoadCategoriesAsync()
     {
@@ -121,6 +170,7 @@ else
             categories = loadedCategories
                 .OrderByDescending(category => category.UpdatedAt)
                 .ToList();
+
             topCategories = categories.Take(4).ToList();
         }
         catch (OperationCanceledException) when (disposalTokenSource.IsCancellationRequested)
@@ -137,9 +187,13 @@ else
         }
     }
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
-        disposalTokenSource.Cancel();
+        await disposalTokenSource.CancelAsync();
+
+        if (module is not null)
+            await module.DisposeAsync();
+        
         disposalTokenSource.Dispose();
     }
 }
