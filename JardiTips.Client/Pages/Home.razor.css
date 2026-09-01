@@ -16,7 +16,7 @@
     margin-bottom: 1.5rem;
 }
 
-.new-releases {
+.category-scroller {
     display: flex;
     gap: 24px;
     margin-inline: -4px;
@@ -29,52 +29,9 @@
     -webkit-overflow-scrolling: touch;
 }
 
-.new-releases__item {
+.category-scroller__item {
     flex: 0 0 clamp(270px, 32vw, 360px);
     scroll-snap-align: start;
-}
-
-.top-courses-carousel-shell {
-    width: min(100%, 420px);
-}
-
-.top-courses-carousel-shell--loading {
-    height: 430px;
-    padding: 4px;
-}
-
-.category-section ::deep .top-courses-carousel {
-    width: 100%;
-    height: 430px;
-}
-
-.category-section ::deep .top-courses-carousel .mud-carousel-transition-slide-next-enter,
-.category-section ::deep .top-courses-carousel .mud-carousel-transition-slide-next-rtl-enter,
-.category-section ::deep .top-courses-carousel .mud-carousel-transition-slide-next-exit,
-.category-section ::deep .top-courses-carousel .mud-carousel-transition-slide-next-rtl-exit,
-.category-section ::deep .top-courses-carousel .mud-carousel-transition-slide-prev-enter,
-.category-section ::deep .top-courses-carousel .mud-carousel-transition-slide-prev-rtl-enter,
-.category-section ::deep .top-courses-carousel .mud-carousel-transition-slide-prev-exit,
-.category-section ::deep .top-courses-carousel .mud-carousel-transition-slide-prev-rtl-exit {
-    animation-duration: 200ms;
-}
-
-.top-courses-carousel__item {
-    height: 100%;
-    padding: 4px;
-}
-
-.top-courses-carousel__indicators {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 52px;
-    gap: 2px;
-}
-
-.top-courses-carousel__indicators ::deep .mud-icon-button {
-    width: 36px;
-    height: 36px;
 }
 
 .home-state {
@@ -107,25 +64,11 @@
         font-size: 2rem;
     }
 
-    .new-releases {
+    .category-scroller {
         gap: 16px;
     }
 
-    .new-releases__item {
+    .category-scroller__item {
         flex-basis: min(84vw, 330px);
-    }
-
-    .category-section ::deep .top-courses-carousel {
-        height: min(430px, calc((100vw - 32px) * 0.5625 + 190px));
-    }
-
-    .top-courses-carousel-shell--loading {
-        height: min(430px, calc((100vw - 32px) * 0.5625 + 190px));
-    }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .category-section ::deep .top-courses-carousel .mud-carousel-item {
-        animation-duration: 1ms;
     }
 }

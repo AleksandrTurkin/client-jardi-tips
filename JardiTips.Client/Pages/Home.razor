@@ -13,10 +13,10 @@
     <div role="status" aria-label="Loading categories">
         <section class="category-section" aria-hidden="true">
             <MudSkeleton SkeletonType="SkeletonType.Text" Animation="Animation.Wave" Width="240px" Height="52px" Class="category-section__skeleton-title" />
-            <div class="new-releases">
+            <div class="category-scroller">
                 @for (var index = 0; index < 3; index++)
                 {
-                    <div class="new-releases__item">
+                    <div class="category-scroller__item">
                         <CategoryCardSkeleton />
                     </div>
                 }
@@ -25,8 +25,13 @@
 
         <section class="category-section category-section--top" aria-hidden="true">
             <MudSkeleton SkeletonType="SkeletonType.Text" Animation="Animation.Wave" Width="210px" Height="52px" Class="category-section__skeleton-title" />
-            <div class="top-courses-carousel-shell top-courses-carousel-shell--loading">
-                <CategoryCardSkeleton />
+            <div class="category-scroller">
+                @for (var index = 0; index < 3; index++)
+                {
+                    <div class="category-scroller__item">
+                        <CategoryCardSkeleton />
+                    </div>
+                }
             </div>
         </section>
     </div>
@@ -56,10 +61,10 @@ else
         <MudText Typo="Typo.h3" HtmlTag="h1" id="new-releases-title" Class="category-section__title">
             New Releases
         </MudText>
-        <div class="new-releases" aria-label="New releases">
+        <div class="category-scroller" aria-label="New releases">
             @foreach (var category in categories)
             {
-                <div class="new-releases__item">
+                <div class="category-scroller__item">
                     <CategoryCard Category="category" />
                 </div>
             }
@@ -70,36 +75,13 @@ else
         <MudText Typo="Typo.h3" HtmlTag="h2" id="top-courses-title" Class="category-section__title">
             Top Courses
         </MudText>
-        <div class="top-courses-carousel-shell">
-            <MudCarousel TData="object"
-                         @bind-SelectedIndex="selectedTopCourseIndex"
-                         Class="top-courses-carousel"
-                         ShowArrows="false"
-                         ShowBullets="false"
-                         AutoCycle="false"
-                         EnableSwipeGesture="true">
-                @foreach (var category in topCategories)
-                {
-                    <MudCarouselItem @key="category.Id">
-                        <div class="top-courses-carousel__item">
-                            <CategoryCard Category="category" />
-                        </div>
-                    </MudCarouselItem>
-                }
-            </MudCarousel>
-            <div class="top-courses-carousel__indicators" aria-label="Choose a top course">
-                @for (var index = 0; index < topCategories.Count; index++)
-                {
-                    var indicatorIndex = index;
-                    var isSelected = indicatorIndex == selectedTopCourseIndex;
-
-                    <MudIconButton Icon="@(isSelected ? Icons.Material.Filled.Circle : Icons.Material.Outlined.Circle)"
-                                   Color="@(isSelected ? Color.Primary : Color.Default)"
-                                   Size="Size.Small"
-                                   aria-label="@($"Show top course {indicatorIndex + 1}")"
-                                   OnClick="@(() => selectedTopCourseIndex = indicatorIndex)" />
-                }
-            </div>
+        <div class="category-scroller" aria-label="Top courses">
+            @foreach (var category in topCategories)
+            {
+                <div class="category-scroller__item">
+                    <CategoryCard Category="category" />
+                </div>
+            }
         </div>
     </section>
 }
@@ -109,7 +91,6 @@ else
     private readonly CancellationTokenSource disposalTokenSource = new();
     private IReadOnlyList<CategoryDto> categories = [];
     private IReadOnlyList<CategoryDto> topCategories = [];
-    private int selectedTopCourseIndex;
     private bool isLoading = true;
     private bool hasLoadError;
 
@@ -141,7 +122,6 @@ else
                 .OrderByDescending(category => category.UpdatedAt)
                 .ToList();
             topCategories = categories.Take(4).ToList();
-            selectedTopCourseIndex = 0;
         }
         catch (OperationCanceledException) when (disposalTokenSource.IsCancellationRequested)
         {
