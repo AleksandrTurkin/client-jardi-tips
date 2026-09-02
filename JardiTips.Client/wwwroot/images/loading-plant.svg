@@ -1,0 +1,164 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 420" role="img" aria-labelledby="title description">
+  <title id="title">Detailed Jade Plant Loading SVG</title>
+  <desc id="description">A detailed 2D vector jade plant on a small mound of soil, featuring organic leaf shapes, realistic shading, stem segments, and a wave loading animation.</desc>
+  <style>
+    .plant-part {
+    fill: var(--base);
+    animation: color-wave 2.4s ease-in-out infinite;
+    animation-delay: var(--delay);
+    transition: fill 0.3s ease;
+    }
+
+    .outline {
+    stroke: #22381e;
+    stroke-width: 2.2;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+    }
+
+    .vein {
+    fill: none;
+    stroke: #2e4d28;
+    stroke-width: 1.1;
+    stroke-linecap: round;
+    opacity: 0.65;
+    }
+
+    .sub-vein {
+    fill: none;
+    stroke: #3c5e34;
+    stroke-width: 0.8;
+    stroke-linecap: round;
+    opacity: 0.45;
+    }
+
+    .leaf-shade {
+    fill: #192e16;
+    opacity: 0.18;
+    }
+
+    .leaf-highlight {
+    fill: #ffffff;
+    opacity: 0.15;
+    }
+
+    @keyframes color-wave {
+    0%, 100% {
+    fill: var(--base);
+    filter: brightness(1) saturate(1);
+    }
+
+    40%, 58% {
+    fill: var(--tint);
+    filter: brightness(1.22) saturate(1.15);
+    }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+    .plant-part { animation: none; }
+    }
+  </style>
+
+  <defs>
+    <linearGradient id="soil-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#6e4f3a"/>
+      <stop offset="100%" stop-color="#422f22"/>
+    </linearGradient>
+    <linearGradient id="stem-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#4d773c"/>
+      <stop offset="50%" stop-color="#6ba052"/>
+      <stop offset="100%" stop-color="#3b5e2d"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Soil Mound with Pebble Details -->
+  <g id="soil-mound">
+    <path d="M 105 345 C 130 328 152 322 180 322 C 208 322 230 328 255 345 C 235 358 125 358 105 345 Z" fill="url(#soil-grad)" stroke="#2b1e16" stroke-width="2.2" stroke-linejoin="round"/>
+    <!-- Soil Layer Shading -->
+    <path d="M 118 342 C 136 332 156 327 180 327 C 204 327 224 332 242 342 C 218 350 142 350 118 342 Z" fill="#7a5a43" opacity="0.6"/>
+    <path d="M 135 338 C 150 332 165 330 180 330 C 195 330 210 332 225 338" fill="none" stroke="#38251a" stroke-width="1.8" stroke-linecap="round" opacity="0.7"/>
+    <!-- Pebbles and Texture -->
+    <ellipse cx="140" cy="345" rx="4" ry="2" fill="#8c6c55" stroke="#2b1e16" stroke-width="1"/>
+    <ellipse cx="215" cy="343" rx="5" ry="2.5" fill="#543c2c" stroke="#2b1e16" stroke-width="1"/>
+    <ellipse cx="170" cy="348" rx="3" ry="1.5" fill="#8c6c55"/>
+    <ellipse cx="195" cy="346" rx="2.5" ry="1.2" fill="#38251a"/>
+    <path d="M 125 346 C 130 344 135 345 138 347" fill="none" stroke="#2b1e16" stroke-width="1.2" stroke-linecap="round"/>
+    <path d="M 220 346 C 225 344 228 345 232 347" fill="none" stroke="#2b1e16" stroke-width="1.2" stroke-linecap="round"/>
+  </g>
+
+  <!-- Plant Base & Stem -->
+  <g id="stem">
+    <!-- Main Woody Base Stem -->
+    <path class="plant-part outline" style="--base:#517d3f;--tint:#669e50;--delay:0.05s" d="M 172 325 L 174 250 L 177 185 L 181 125 L 183 70 L 191 72 L 187 126 L 183 186 L 180 250 L 180 325 Z"/>
+    <!-- Stem Segments / Nodes -->
+    <path d="M 173 285 C 176 287 178 287 180 285" fill="none" stroke="#22381e" stroke-width="1.5"/>
+    <path d="M 175 220 C 178 222 180 222 182 220" fill="none" stroke="#22381e" stroke-width="1.5"/>
+    <path d="M 178 155 C 180 157 182 157 184 155" fill="none" stroke="#22381e" stroke-width="1.5"/>
+    <!-- Stem Highlight Vein -->
+    <path class="vein" d="M 176 320 L 178 250 L 180 185 L 183 125 L 185 71"/>
+  </g>
+
+  <!-- Leaves Tier 1 (Bottom Pair) -->
+  <g id="leaf-bottom-left">
+    <path class="plant-part outline" style="--base:#5f9848;--tint:#73b359;--delay:0s" d="M 174 285 C 145 262 102 262 72 284 C 55 298 58 318 72 325 C 104 329 146 308 174 285 Z"/>
+    <path class="leaf-shade" d="M 174 285 C 145 295 104 329 72 325 C 104 329 146 308 174 285 Z"/>
+    <path class="leaf-highlight" d="M 174 285 C 145 262 102 262 72 284 C 95 272 135 272 174 285 Z"/>
+    <path class="vein" d="M 166 285 C 137 292 108 305 82 321"/>
+    <path class="sub-vein" d="M 145 291 L 124 283 M 128 298 L 108 294 M 112 308 L 93 308"/>
+  </g>
+
+  <g id="leaf-bottom-right">
+    <path class="plant-part outline" style="--base:#578f40;--tint:#6caa50;--delay:0.12s" d="M 179 270 C 210 246 256 252 286 276 C 298 287 296 301 282 307 C 246 313 205 298 179 270 Z"/>
+    <path class="leaf-shade" d="M 179 270 C 205 298 246 313 282 307 C 250 305 210 295 179 270 Z"/>
+    <path class="leaf-highlight" d="M 179 270 C 210 246 256 252 286 276 C 250 260 210 258 179 270 Z"/>
+    <path class="vein" d="M 188 272 C 218 280 252 292 285 303"/>
+    <path class="sub-vein" d="M 215 278 L 230 265 M 238 286 L 256 273 M 258 295 L 275 284"/>
+  </g>
+
+  <!-- Leaves Tier 2 (Middle-Lower Pair) -->
+  <g id="leaf-mid-low-left">
+    <path class="plant-part outline" style="--base:#66a04e;--tint:#79b95f;--delay:0.24s" d="M 177 222 C 150 196 112 184 86 195 C 69 203 66 222 73 235 C 98 236 138 230 177 222 Z"/>
+    <path class="leaf-shade" d="M 177 222 C 138 230 98 236 73 235 C 100 230 140 226 177 222 Z"/>
+    <path class="vein" d="M 168 221 C 143 215 116 220 92 233"/>
+    <path class="sub-vein" d="M 148 215 L 132 201 M 128 218 L 113 208 M 110 223 L 96 216"/>
+  </g>
+
+  <g id="leaf-mid-low-right">
+    <path class="plant-part outline" style="--base:#5c9444;--tint:#6fb053;--delay:0.36s" d="M 181 208 C 213 182 258 183 295 208 C 310 218 309 230 297 237 C 257 240 215 226 181 208 Z"/>
+    <path class="leaf-shade" d="M 181 208 C 215 226 257 240 297 237 C 255 232 215 220 181 208 Z"/>
+    <path class="vein" d="M 190 208 C 223 213 260 224 297 232"/>
+    <path class="sub-vein" d="M 221 213 L 238 198 M 245 220 L 264 205 M 270 226 L 287 215"/>
+  </g>
+
+  <!-- Leaves Tier 3 (Middle-Upper Pair) -->
+  <g id="leaf-mid-high-left">
+    <path class="plant-part outline" style="--base:#6ea654;--tint:#82bd66;--delay:0.48s" d="M 181 155 C 160 135 133 115 113 100 C 106 94 107 88 114 87 C 145 93 172 114 184 143 Z"/>
+    <path class="leaf-shade" d="M 181 155 C 172 114 145 93 114 87 C 135 98 160 120 181 155 Z"/>
+    <path class="vein" d="M 180 146 C 160 126 140 107 118 92"/>
+    <path class="sub-vein" d="M 160 124 L 157 107 M 147 114 L 140 98 M 134 103 L 126 92"/>
+  </g>
+
+  <g id="leaf-mid-high-right">
+    <path class="plant-part outline" style="--base:#619948;--tint:#73b357;--delay:0.60s" d="M 184 142 C 212 120 252 124 283 145 C 295 153 293 163 282 168 C 248 171 213 158 184 142 Z"/>
+    <path class="vein" d="M 192 142 C 220 147 252 156 283 162"/>
+    <path class="sub-vein" d="M 220 146 L 235 133 M 242 152 L 258 140 M 264 157 L 278 148"/>
+  </g>
+
+  <!-- Leaves Tier 4 (Top Shoot / Crown) -->
+  <g id="leaf-top-left">
+    <path class="plant-part outline" style="--base:#659d4c;--tint:#78b75c;--delay:0.72s" d="M 184 135 C 192 110 190 83 177 62 C 165 44 139 36 120 37 C 112 38 110 44 113 50 C 127 75 153 97 184 135 Z"/>
+    <path class="leaf-shade" d="M 184 135 C 153 97 127 75 113 50 C 130 58 158 85 184 135 Z"/>
+    <path class="vein" d="M 181 125 C 162 97 139 68 115 43"/>
+    <path class="sub-vein" d="M 162 98 L 165 71 M 148 82 L 147 58 M 135 69 L 131 49 M 123 57 L 118 47"/>
+  </g>
+
+  <g id="leaf-top-right">
+    <path class="plant-part outline" style="--base:#72a958;--tint:#86c16b;--delay:0.84s" d="M 186 130 C 195 112 209 100 223 100 C 232 100 234 107 226 112 C 214 122 199 129 186 130 Z"/>
+    <path class="vein" d="M 191 127 L 226 104"/>
+  </g>
+
+  <!-- Center Tip Leaf Bud -->
+  <g id="leaf-bud">
+    <path class="plant-part outline" style="--base:#7cb161;--tint:#90ca74;--delay:0.92s" d="M 183 70 C 181 55 175 42 168 33 C 165 29 159 31 161 36 C 167 48 175 58 183 70 Z"/>
+  </g>
+</svg>

@@ -52,38 +52,43 @@ html, body {
         content: "An error has occurred."
     }
 
-.loading-progress {
-    position: absolute;
-    display: block;
-    width: 8rem;
-    height: 8rem;
-    inset: 20vh 0 auto 0;
-    margin: 0 auto 0 auto;
+.plant-loader {
+    box-sizing: border-box;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 2rem calc(2rem + 12vh);
+    color: #416c48;
+    background:
+        radial-gradient(circle at 50% 42%, rgba(220, 239, 207, 0.62), transparent 20rem),
+        #fafcf8;
 }
 
-    .loading-progress circle {
-        fill: none;
-        stroke: #e0e0e0;
-        stroke-width: 0.6rem;
-        transform-origin: 50% 50%;
-        transform: rotate(-90deg);
-    }
-
-        .loading-progress circle:last-child {
-            stroke: #1b6ec2;
-            stroke-dasharray: calc(3.141 * var(--blazor-load-percentage, 0%) * 0.8), 500%;
-            transition: stroke-dasharray 0.05s ease-in-out;
-        }
-
-.loading-progress-text {
-    position: absolute;
-    text-align: center;
-    font-weight: bold;
-    inset: calc(20vh + 3.25rem) 0 auto 0.2rem;
+.plant-loader-animation {
+    width: min(18rem, 76vw);
+    height: auto;
+    filter: drop-shadow(0 1rem 1.5rem rgba(65, 108, 72, 0.08));
 }
 
-    .loading-progress-text:after {
-        content: var(--blazor-load-percentage-text, "Loading");
+.plant-loader-title {
+    margin-top: -1.25rem;
+    font-size: 1.15rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+}
+
+.plant-loader-progress {
+    margin-top: 0.45rem;
+    min-height: 1.25rem;
+    color: #719477;
+    font-size: 0.875rem;
+    font-variant-numeric: tabular-nums;
+}
+
+    .plant-loader-progress::after {
+        content: var(--blazor-load-percentage-text, "Planting…");
     }
 
 code {

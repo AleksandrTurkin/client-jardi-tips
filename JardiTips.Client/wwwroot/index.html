@@ -19,11 +19,11 @@
 
 <body>
     <div id="app">
-        <svg class="loading-progress">
-            <circle r="40%" cx="50%" cy="50%" />
-            <circle r="40%" cx="50%" cy="50%" />
-        </svg>
-        <div class="loading-progress-text"></div>
+        <div class="plant-loader" role="status" aria-live="polite" aria-label="Jardi Tips is loading">
+            <img class="plant-loader-animation" src="images/loading-plant.svg" alt="" />
+            <div class="plant-loader-title">Grow your expertise</div>
+            <div class="plant-loader-progress"></div>
+        </div>
     </div>
 
     <div id="blazor-error-ui">
