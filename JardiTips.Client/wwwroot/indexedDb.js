@@ -1,6 +1,6 @@
 const databaseName = "JardiTips";
-const databaseVersion = 2;
-const storeNames = ["categorySnapshots"];
+const databaseVersion = 3;
+const storeNames = ["categorySnapshots", "tipSnapshots"];
 
 let databasePromise;
 

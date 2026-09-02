@@ -34,13 +34,18 @@ public static class ApiServiceCollectionExtensions
         });
         services.AddScoped<IApiClient, ApiClient>();
         services.AddScoped<ICategoryApiSource, CategoryApiSource>();
+        services.AddScoped<ITipApiSource, TipApiSource>();
         services.AddScoped<BrowserDatabase>();
         services.AddScoped<ICategoryStore, IndexedDbCategoryStore>();
+        services.AddScoped<ITipStore, IndexedDbTipStore>();
         services.AddScoped<CategoryQueryService>();
         services.AddScoped<ICategoryQueries>(serviceProvider =>
             serviceProvider.GetRequiredService<CategoryQueryService>());
         services.AddScoped<ICategoryStartup>(serviceProvider =>
             serviceProvider.GetRequiredService<CategoryQueryService>());
+        services.AddScoped<TipQueryService>();
+        services.AddScoped<ITipQueries>(serviceProvider =>
+            serviceProvider.GetRequiredService<TipQueryService>());
 
         return services;
     }
