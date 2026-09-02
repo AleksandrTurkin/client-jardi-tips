@@ -1,25 +1,36 @@
 @using JardiTips.Client.Features.Categories.Models
 
-<MudCard Class="category-card" Elevation="1">
-    <div class="category-card__media">
-        <img src="@CoverImageSource"
-             alt="@($"Cover for {Category.Name}")"
-             loading="lazy"
-             @onerror="HandleImageError" />
-    </div>
-    <MudCardContent Class="category-card__content">
-        <MudText Typo="Typo.h6" Class="category-card__title">@Category.Name</MudText>
-        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="category-card__description">
-            @Category.Description
-        </MudText>
-    </MudCardContent>
-    <MudCardActions Class="category-card__actions">
-        <MudIconButton Icon="@Icons.Material.Outlined.FavoriteBorder"
-                       Disabled="true"
-                       Color="Color.Default"
-                       aria-label="Like unavailable" />
-    </MudCardActions>
-</MudCard>
+<div class="category-card-host">
+    <MudCard Class="category-card" Elevation="1">
+        <div class="category-card__media">
+            <img src="@CoverImageSource"
+                 alt="@($"Cover for {Category.Name}")"
+                 loading="lazy"
+                 @onerror="HandleImageError" />
+        </div>
+        <MudCardContent Class="category-card__content pt-2 pb-0 ps-2 pe-2">
+            <MudText Typo="Typo.h6" Class="category-card__title">@Category.Name</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="category-card__description">
+                @Category.Description
+            </MudText>
+        </MudCardContent>
+        <MudCardActions Class="category-card__actions d-flex justify-space-between px-2 py-0">
+            <MudIconButton Icon="@Icons.Material.Outlined.FavoriteBorder"
+                           Disabled="true"
+                           Color="Color.Default"
+                           aria-label="Like unavailable" />
+
+            <MudTooltip Text="@($"This collection contains {Category.TipsCount} tips.")">
+                <span class="d-flex align-center" aria-label="@($"{Category.TipsCount} tips")">
+                    <MudIcon Icon="@Icons.Material.Outlined.ViewCarousel"
+                             Color="Color.Secondary"
+                             aria-hidden="true" />
+                    <MudText Typo="Typo.body2" Class="ms-1 fw-bold">@Category.TipsCount</MudText>
+                </span>
+            </MudTooltip>
+        </MudCardActions>
+    </MudCard>
+</div>
 
 @code {
     private const string PlaceholderImage = "images/category-placeholder.svg";
