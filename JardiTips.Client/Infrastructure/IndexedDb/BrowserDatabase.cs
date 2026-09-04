@@ -37,6 +37,21 @@ public sealed class BrowserDatabase(IJSRuntime jsRuntime) : IAsyncDisposable
             value);
     }
 
+    public async Task PutAsync<T>(
+        string storeName,
+        string key,
+        T value,
+        CancellationToken cancellationToken)
+    {
+        var databaseModule = await GetModuleAsync(cancellationToken);
+        await databaseModule.InvokeVoidAsync(
+            "put",
+            cancellationToken,
+            storeName,
+            key,
+            value);
+    }
+
     private async Task<IJSObjectReference> GetModuleAsync(CancellationToken cancellationToken)
     {
         if (module is not null)

@@ -11,12 +11,23 @@
     overflow: hidden;
     border: 1px solid var(--mud-palette-lines-default);
     border-radius: 20px;
+    cursor: pointer;
     transition: transform 180ms ease, box-shadow 180ms ease;
 }
 
-.category-card-host ::deep .category-card:hover {
+.category-card-host ::deep .category-card:hover,
+.category-card-host ::deep .category-card:focus-visible {
     transform: translateY(-2px);
     box-shadow: var(--mud-elevation-6);
+}
+
+.category-card-host ::deep .category-card:focus-visible {
+    outline: 3px solid var(--mud-palette-primary);
+    outline-offset: 3px;
+}
+
+.category-card-host ::deep .category-card:active {
+    transform: translateY(0);
 }
 
 .category-card__media {

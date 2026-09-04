@@ -60,3 +60,17 @@ export async function replace(storeName, key, value) {
         transaction.onabort = () => reject(transaction.error);
     });
 }
+
+export async function put(storeName, key, value) {
+    const database = await openDatabase();
+    ensureStore(database, storeName);
+
+    return new Promise((resolve, reject) => {
+        const transaction = database.transaction(storeName, "readwrite");
+        transaction.objectStore(storeName).put(value, key);
+
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = () => reject(transaction.error);
+        transaction.onabort = () => reject(transaction.error);
+    });
+}

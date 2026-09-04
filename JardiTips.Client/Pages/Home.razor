@@ -84,7 +84,7 @@ else
                     @foreach (var category in categories)
                     {
                         <div class="category-scroller__item">
-                            <CategoryCard Category="category" />
+                            <CategoryCard Category="category" OnSelected="OpenTips" />
                         </div>
                     }
                 </div>
@@ -118,13 +118,20 @@ else
                     @foreach (var category in topCategories)
                     {
                         <div class="category-scroller__item">
-                            <CategoryCard Category="category" />
+                            <CategoryCard Category="category" OnSelected="OpenTips" />
                         </div>
                     }
                 </div>
             </section>
         </MudPaper>
     </div>
+}
+
+@if (selectedCategory is not null)
+{
+    <TipsViewer @key="selectedCategory.Id"
+                Category="selectedCategory"
+                OnClose="CloseTipsAsync" />
 }
 
 @code {
@@ -135,6 +142,7 @@ else
     private ElementReference topCoursesScroller;
     private IReadOnlyList<CategoryDto> categories = [];
     private IReadOnlyList<CategoryDto> topCategories = [];
+    private CategoryDto? selectedCategory;
     private bool isLoading = true;
     private bool hasLoadError;
 
@@ -193,6 +201,14 @@ else
         {
             isLoading = false;
         }
+    }
+
+    private void OpenTips(CategoryDto category) => selectedCategory = category;
+
+    private Task CloseTipsAsync()
+    {
+        selectedCategory = null;
+        return Task.CompletedTask;
     }
 
     public async ValueTask DisposeAsync()

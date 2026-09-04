@@ -33,7 +33,19 @@
     </div>
     <script src="_framework/blazor.webassembly#[.{fingerprint}].js"></script>
     <script src="_content/MudBlazor/MudBlazor.min.js"></script>
-    <script>navigator.serviceWorker.register('service-worker.js', { updateViaCache: 'none' });</script>
+    <script>
+        window.addEventListener('load', async () => {
+            if (!('serviceWorker' in navigator)) {
+                return;
+            }
+
+            try {
+                await navigator.serviceWorker.register('service-worker.js', { updateViaCache: 'none' });
+            } catch (error) {
+                console.error('Service worker registration failed:', error);
+            }
+        });
+    </script>
 </body>
 
 </html>

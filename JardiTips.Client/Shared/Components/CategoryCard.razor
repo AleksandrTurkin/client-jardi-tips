@@ -1,7 +1,13 @@
 @using JardiTips.Client.Features.Categories.Models
 
 <div class="category-card-host">
-    <MudCard Class="category-card" Elevation="1">
+    <MudCard Class="category-card"
+             Elevation="1"
+             tabindex="0"
+             role="button"
+             aria-label="@($"Open {Category.Name} tips")"
+             @onclick="SelectAsync"
+             @onkeydown="HandleKeyDownAsync">
         <div class="category-card__media">
             <img src="@CoverImageSource"
                  alt="@($"Cover for {Category.Name}")"
@@ -39,6 +45,9 @@
     [Parameter, EditorRequired]
     public CategoryDto Category { get; set; } = default!;
 
+    [Parameter]
+    public EventCallback<CategoryDto> OnSelected { get; set; }
+
     private string CoverImageSource => string.IsNullOrWhiteSpace(Category.CoverImageUrl)
         || string.Equals(Category.CoverImageUrl, failedImageUrl, StringComparison.Ordinal)
             ? PlaceholderImage
@@ -49,4 +58,11 @@
         if (!string.Equals(CoverImageSource, PlaceholderImage, StringComparison.Ordinal))
             failedImageUrl = Category.CoverImageUrl;
     }
+
+    private Task SelectAsync() => OnSelected.InvokeAsync(Category);
+
+    private Task HandleKeyDownAsync(KeyboardEventArgs args) =>
+        args.Key is "Enter" or " "
+            ? SelectAsync()
+            : Task.CompletedTask;
 }

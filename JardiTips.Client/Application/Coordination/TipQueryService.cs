@@ -8,7 +8,7 @@ public sealed class TipQueryService(
     ITipStore store,
     ILogger<TipQueryService> logger) : ITipQueries, IDisposable
 {
-    private const int PrefetchThreshold = 5;
+    private const int PrefetchThreshold = 10;
 
     private readonly Lock initializationLock = new();
     private readonly SemaphoreSlim queryLock = new(1, 1);
@@ -26,7 +26,7 @@ public sealed class TipQueryService(
         await queryLock.WaitAsync(cancellationToken);
         try
         {
-            var snapshot = await store.GetSnapshotAsync(cancellationToken);
+            var snapshot = await store.GetSnapshotAsync(categoryId, cancellationToken);
             if (snapshot is null || snapshot.CategoryId != categoryId)
             {
                 snapshot = new TipSnapshot(

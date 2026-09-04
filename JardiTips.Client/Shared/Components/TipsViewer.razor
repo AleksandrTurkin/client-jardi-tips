@@ -1,0 +1,307 @@
+@using JardiTips.Client.Application.Abstractions
+@using JardiTips.Client.Features.Categories.Models
+@using JardiTips.Client.Features.Tips.Models
+@implements IAsyncDisposable
+@inject ITipQueries TipQueries
+@inject ILogger<TipsViewer> Logger
+
+<MudOverlay Visible="true"
+            DarkBackground="true"
+            AutoClose="false"
+            Style="z-index: 1400;"
+            Class="tips-viewer-overlay">
+    <div class="tips-viewer-host"
+         tabindex="-1"
+         role="dialog"
+         aria-modal="true"
+         aria-labelledby="tips-viewer-title"
+         @ref="viewerContainer"
+         @onkeydown="HandleKeyDownAsync">
+        <MudPaper Square="true" Elevation="12" Class="tips-viewer-panel">
+            <header class="tips-viewer-header">
+                <MudText Typo="Typo.h5" HtmlTag="h2" id="tips-viewer-title" Class="tips-viewer-title">
+                    @(currentTip?.Title ?? Category.Name)
+                </MudText>
+                <div class="tips-viewer-header__actions">
+                    <div class="tips-viewer-navigation" aria-label="Tip navigation">
+                        <MudIconButton Icon="@Icons.Material.Rounded.ChevronLeft"
+                                       Color="Color.Primary"
+                                       Variant="Variant.Outlined"
+                                       Disabled="@(!CanMovePrevious)"
+                                       OnClick="MovePreviousAsync"
+                                       aria-label="Previous tip" />
+                        <MudIconButton Icon="@Icons.Material.Rounded.ChevronRight"
+                                       Color="Color.Primary"
+                                       Variant="Variant.Outlined"
+                                       Disabled="@(!CanMoveNext)"
+                                       OnClick="MoveNextAsync"
+                                       aria-label="Next tip" />
+                    </div>
+                    <MudIconButton Icon="@Icons.Material.Rounded.Close"
+                                   Color="Color.Default"
+                                   OnClick="CloseAsync"
+                                   aria-label="Close tips" />
+                </div>
+            </header>
+
+            <main class="tips-viewer-content"
+                  aria-live="polite"
+                  @ontouchstart="HandleTouchStart"
+                  @ontouchend="HandleTouchEndAsync"
+                  @ontouchcancel="ResetTouch">
+                @if (isLoading)
+                {
+                    <div class="tips-viewer-skeleton" role="status" aria-label="Loading tips">
+                        <MudSkeleton SkeletonType="SkeletonType.Text" Animation="Animation.Wave" Width="48%" Height="36px" />
+                        <MudSkeleton SkeletonType="SkeletonType.Text" Animation="Animation.Wave" Width="100%" Height="24px" />
+                        <MudSkeleton SkeletonType="SkeletonType.Text" Animation="Animation.Wave" Width="92%" Height="24px" />
+                        <MudSkeleton SkeletonType="SkeletonType.Text" Animation="Animation.Wave" Width="96%" Height="24px" />
+                        <MudSkeleton SkeletonType="SkeletonType.Text" Animation="Animation.Wave" Width="72%" Height="24px" />
+                    </div>
+                }
+                else if (hasLoadError)
+                {
+                    <div class="tips-viewer-state">
+                        <MudAlert Severity="Severity.Error" Variant="Variant.Outlined">
+                            Tips could not be loaded. Cached tips remain available when possible.
+                        </MudAlert>
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="RetryAsync">
+                            Try again
+                        </MudButton>
+                    </div>
+                }
+                else if (currentTip is null)
+                {
+                    <div class="tips-viewer-state">
+                        <MudIcon Icon="@Icons.Material.Outlined.TipsAndUpdates" Color="Color.Primary" Size="Size.Large" />
+                        <MudText Typo="Typo.h6">No tips are available in this category.</MudText>
+                    </div>
+                }
+                else
+                {
+                    <MudCarousel TData="TipDto"
+                                 Class="tips-viewer-carousel"
+                                 SelectedIndex="@currentIndex"
+                                 AutoCycle="false"
+                                 ShowArrows="false"
+                                 ShowBullets="false"
+                                 EnableSwipeGesture="false">
+                        @foreach (var tip in tips)
+                        {
+                            <MudCarouselItem @key="tip.Id" Transition="Transition.Slide">
+                                <div class="tips-viewer-slide">
+                                    <MarkdownContent Content="@tip.Content" />
+                                </div>
+                            </MudCarouselItem>
+                        }
+                    </MudCarousel>
+                }
+            </main>
+
+            <footer class="tips-viewer-footer">
+                <MudIconButton Icon="@Icons.Material.Outlined.FavoriteBorder"
+                               Disabled="true"
+                               Color="Color.Default"
+                               aria-label="Like unavailable" />
+
+                <MudText Typo="Typo.h6" Class="tips-viewer-count">
+                    @CurrentPosition of @Category.TipsCount
+                </MudText>
+            </footer>
+        </MudPaper>
+    </div>
+</MudOverlay>
+
+@code {
+    private const double SwipeThreshold = 50;
+    private CancellationTokenSource loadTokenSource = new();
+    private ElementReference viewerContainer;
+    private IReadOnlyList<TipDto> tips = [];
+    private double? touchStartX;
+    private double? touchStartY;
+    private Guid loadedCategoryId;
+    private int currentIndex;
+    private bool hasMore;
+    private bool isLoading;
+    private bool isLoadingPage;
+    private bool hasLoadError;
+    private bool shouldFocus = true;
+
+    [Parameter, EditorRequired]
+    public CategoryDto Category { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    private TipDto? currentTip => currentIndex >= 0 && currentIndex < tips.Count
+        ? tips[currentIndex]
+        : null;
+
+    private bool CanMovePrevious => !isLoading && currentIndex > 0;
+
+    private bool CanMoveNext => !isLoading
+        && currentIndex + 1 < Category.TipsCount
+        && (currentIndex + 1 < tips.Count || hasMore);
+
+    private int CurrentPosition => currentTip is null ? 0 : currentIndex + 1;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Category.Id == loadedCategoryId)
+            return;
+
+        await loadTokenSource.CancelAsync();
+        loadTokenSource.Dispose();
+        loadTokenSource = new CancellationTokenSource();
+        loadedCategoryId = Category.Id;
+        currentIndex = 0;
+        tips = [];
+        hasMore = false;
+        hasLoadError = false;
+        isLoading = true;
+
+        try
+        {
+            await RefreshCollectionAsync(-1, loadTokenSource.Token);
+        }
+        catch (OperationCanceledException) when (loadTokenSource.IsCancellationRequested)
+        {
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to load tips for category {CategoryId}.", Category.Id);
+            hasLoadError = true;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!shouldFocus)
+            return;
+
+        shouldFocus = false;
+        await viewerContainer.FocusAsync();
+    }
+
+    private Task MovePreviousAsync()
+    {
+        if (CanMovePrevious)
+            currentIndex--;
+
+        return Task.CompletedTask;
+    }
+
+    private async Task MoveNextAsync()
+    {
+        if (!CanMoveNext)
+            return;
+
+        if (currentIndex + 1 >= tips.Count)
+            await RefreshCollectionAsync(currentIndex, loadTokenSource.Token);
+
+        if (currentIndex + 1 >= tips.Count)
+            return;
+
+        currentIndex++;
+        StateHasChanged();
+        await RefreshCollectionAsync(currentIndex, loadTokenSource.Token);
+    }
+
+    private async Task RetryAsync()
+    {
+        hasLoadError = false;
+        isLoading = true;
+
+        try
+        {
+            await RefreshCollectionAsync(-1, loadTokenSource.Token);
+        }
+        catch (OperationCanceledException) when (loadTokenSource.IsCancellationRequested)
+        {
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to retry tips for category {CategoryId}.", Category.Id);
+            hasLoadError = true;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task RefreshCollectionAsync(int lastVisibleIndex, CancellationToken cancellationToken)
+    {
+        if (isLoadingPage)
+            return;
+
+        isLoadingPage = true;
+        try
+        {
+            var collection = await TipQueries.GetAsync(Category.Id, lastVisibleIndex, cancellationToken);
+            tips = collection.Tips;
+            hasMore = collection.HasMore;
+        }
+        finally
+        {
+            isLoadingPage = false;
+        }
+    }
+
+    private Task CloseAsync() => OnClose.InvokeAsync();
+
+    private Task HandleKeyDownAsync(KeyboardEventArgs args) =>
+        string.Equals(args.Key, "Escape", StringComparison.Ordinal)
+            ? CloseAsync()
+            : Task.CompletedTask;
+
+    private void HandleTouchStart(TouchEventArgs args)
+    {
+        if (args.Touches.Length != 1)
+        {
+            ResetTouch();
+            return;
+        }
+
+        touchStartX = args.Touches[0].ClientX;
+        touchStartY = args.Touches[0].ClientY;
+    }
+
+    private async Task HandleTouchEndAsync(TouchEventArgs args)
+    {
+        var startX = touchStartX;
+        var startY = touchStartY;
+        ResetTouch();
+
+        if (startX is null || startY is null || args.ChangedTouches.Length != 1)
+            return;
+
+        var horizontalDistance = args.ChangedTouches[0].ClientX - startX.Value;
+        var verticalDistance = args.ChangedTouches[0].ClientY - startY.Value;
+
+        if (Math.Abs(horizontalDistance) < SwipeThreshold
+            || Math.Abs(horizontalDistance) <= Math.Abs(verticalDistance))
+            return;
+
+        if (horizontalDistance > 0)
+            await MovePreviousAsync();
+        else
+            await MoveNextAsync();
+    }
+
+    private void ResetTouch()
+    {
+        touchStartX = null;
+        touchStartY = null;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await loadTokenSource.CancelAsync();
+        loadTokenSource.Dispose();
+    }
+}

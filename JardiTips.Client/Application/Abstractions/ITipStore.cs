@@ -6,7 +6,7 @@ public interface ITipStore
 {
     Task InitializeAsync(CancellationToken cancellationToken);
 
-    Task<TipSnapshot?> GetSnapshotAsync(CancellationToken cancellationToken);
+    Task<TipSnapshot?> GetSnapshotAsync(Guid categoryId, CancellationToken cancellationToken);
 
     Task ReplaceAsync(TipSnapshot snapshot, CancellationToken cancellationToken);
 }

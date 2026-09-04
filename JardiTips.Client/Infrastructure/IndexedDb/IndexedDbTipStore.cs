@@ -6,22 +6,28 @@ namespace JardiTips.Client.Infrastructure.IndexedDb;
 public sealed class IndexedDbTipStore(BrowserDatabase database) : ITipStore
 {
     private const string StoreName = "tipSnapshots";
-    private const string SnapshotKey = "current";
+    private const string LegacySnapshotKey = "current";
 
     public Task InitializeAsync(CancellationToken cancellationToken) =>
-        GetSnapshotAsync(cancellationToken);
+        database.GetAsync<TipSnapshot>(StoreName, LegacySnapshotKey, cancellationToken);
 
-    public Task<TipSnapshot?> GetSnapshotAsync(CancellationToken cancellationToken) =>
-        database.GetAsync<TipSnapshot>(StoreName, SnapshotKey, cancellationToken);
+    public Task<TipSnapshot?> GetSnapshotAsync(Guid categoryId, CancellationToken cancellationToken)
+    {
+        ArgumentOutOfRangeException.ThrowIfEqual(categoryId, Guid.Empty);
+
+        return database.GetAsync<TipSnapshot>(StoreName, GetSnapshotKey(categoryId), cancellationToken);
+    }
 
     public Task ReplaceAsync(TipSnapshot snapshot, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
 
-        return database.ReplaceAsync(
+        return database.PutAsync(
             StoreName,
-            SnapshotKey,
+            GetSnapshotKey(snapshot.CategoryId),
             snapshot,
             cancellationToken);
     }
+
+    private static string GetSnapshotKey(Guid categoryId) => categoryId.ToString("D");
 }
