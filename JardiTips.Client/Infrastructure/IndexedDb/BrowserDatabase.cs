@@ -1,8 +1,9 @@
 using Microsoft.JSInterop;
+using JardiTips.Client.Application.Abstractions;
 
 namespace JardiTips.Client.Infrastructure.IndexedDb;
 
-public sealed class BrowserDatabase(IJSRuntime jsRuntime) : IAsyncDisposable
+public sealed class BrowserDatabase(IJSRuntime jsRuntime) : IBrowserDataCleaner, IAsyncDisposable
 {
     private const string ModulePath = "./indexedDb.js";
 
@@ -35,6 +36,25 @@ public sealed class BrowserDatabase(IJSRuntime jsRuntime) : IAsyncDisposable
             storeName,
             key,
             value);
+    }
+
+    public async Task DeleteAsync(
+        string storeName,
+        string key,
+        CancellationToken cancellationToken)
+    {
+        var databaseModule = await GetModuleAsync(cancellationToken);
+        await databaseModule.InvokeVoidAsync(
+            "remove",
+            cancellationToken,
+            storeName,
+            key);
+    }
+
+    public async Task ClearAsync(CancellationToken cancellationToken)
+    {
+        var databaseModule = await GetModuleAsync(cancellationToken);
+        await databaseModule.InvokeVoidAsync("clearDatabase", cancellationToken);
     }
 
     public async Task PutAsync<T>(

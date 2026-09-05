@@ -1,0 +1,24 @@
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body1">
+            Are you sure you want to sign out? Cached JardiTips data on this device will also be removed.
+        </MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" OnClick="Cancel">
+            Cancel
+        </MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="Confirm">
+            Sign out
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = default!;
+
+    private void Cancel() => Dialog.Cancel();
+
+    private void Confirm() => Dialog.Close(DialogResult.Ok(true));
+}

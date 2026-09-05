@@ -1,6 +1,6 @@
 const databaseName = "JardiTips";
-const databaseVersion = 3;
-const storeNames = ["categorySnapshots", "tipSnapshots"];
+const databaseVersion = 4;
+const storeNames = ["categorySnapshots", "tipSnapshots", "authenticationSessions"];
 
 let databasePromise;
 
@@ -17,9 +17,22 @@ function openDatabase() {
             }
         };
 
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-        request.onblocked = () => reject(new Error(`Opening IndexedDB database '${databaseName}' was blocked.`));
+        request.onsuccess = () => {
+            const database = request.result;
+            database.onversionchange = () => {
+                database.close();
+                databasePromise = undefined;
+            };
+            resolve(database);
+        };
+        request.onerror = () => {
+            databasePromise = undefined;
+            reject(request.error);
+        };
+        request.onblocked = () => {
+            databasePromise = undefined;
+            reject(new Error(`Opening IndexedDB database '${databaseName}' was blocked.`));
+        };
     });
 
     return databasePromise;
@@ -41,6 +54,40 @@ export async function get(storeName, key) {
 
         request.onsuccess = () => resolve(request.result ?? null);
         request.onerror = () => reject(request.error);
+    });
+}
+
+export async function remove(storeName, key) {
+    const database = await openDatabase();
+    ensureStore(database, storeName);
+
+    return new Promise((resolve, reject) => {
+        const transaction = database.transaction(storeName, "readwrite");
+        transaction.objectStore(storeName).delete(key);
+
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = () => reject(transaction.error);
+        transaction.onabort = () => reject(transaction.error);
+    });
+}
+
+export async function clearDatabase() {
+    if (databasePromise) {
+        try {
+            const database = await databasePromise;
+            database.close();
+        } catch {
+        }
+
+        databasePromise = undefined;
+    }
+
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.deleteDatabase(databaseName);
+
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+        request.onblocked = () => reject(new Error(`Deleting IndexedDB database '${databaseName}' was blocked.`));
     });
 }
 

@@ -1,0 +1,192 @@
+@using System.ComponentModel.DataAnnotations
+@using JardiTips.Client.Application.Abstractions
+@using JardiTips.Client.Features.Authentication.Models
+@implements IAsyncDisposable
+@inject IAuthenticationService AuthenticationService
+@inject ILogger<LoginOverlay> Logger
+
+<MudOverlay Visible="true"
+            DarkBackground="true"
+            AutoClose="false"
+            Style="z-index: 1400;"
+            Class="login-overlay">
+    <div class="login-overlay__host"
+         tabindex="-1"
+         role="dialog"
+         aria-modal="true"
+         aria-labelledby="login-title"
+         @onkeydown="HandleKeyDownAsync">
+        <MudPaper Elevation="12" Class="login-panel pa-6">
+            <div class="d-flex align-center mb-6">
+                <MudText Typo="Typo.h4" HtmlTag="h2" id="login-title" Class="login-panel__title">
+                    Sign in
+                </MudText>
+                <MudSpacer />
+                <MudIconButton Icon="@Icons.Material.Rounded.Close"
+                               Disabled="@isSubmitting"
+                               OnClick="CloseAsync"
+                               aria-label="Close sign in" />
+            </div>
+
+            <EditForm Model="@model" OnValidSubmit="LoginAsync">
+                <DataAnnotationsValidator />
+                <MudStack Spacing="3">
+                    @if (!string.IsNullOrWhiteSpace(errorMessage))
+                    {
+                        <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Dense="true">
+                            @errorMessage
+                        </MudAlert>
+                    }
+
+                    <MudTextField @ref="emailField"
+                                  T="string"
+                                  Label="Email"
+                                  Variant="Variant.Outlined"
+                                  InputType="InputType.Email"
+                                  @bind-Value="model.Email"
+                                  For="@(() => model.Email)"
+                                  Disabled="@isSubmitting"
+                                  UserAttributes="@EmailAttributes" />
+
+                    <MudTextField T="string"
+                                  Label="Password"
+                                  Variant="Variant.Outlined"
+                                  InputType="InputType.Password"
+                                  @bind-Value="model.Password"
+                                  For="@(() => model.Password)"
+                                  Disabled="@isSubmitting"
+                                  UserAttributes="@PasswordAttributes" />
+
+                    <MudButton ButtonType="ButtonType.Submit"
+                               Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               Size="Size.Large"
+                               FullWidth="true"
+                               Disabled="@isSubmitting"
+                               Class="mt-2">
+                        @if (isSubmitting)
+                        {
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
+                            <span>Signing in...</span>
+                        }
+                        else
+                        {
+                            <span>Sign in</span>
+                        }
+                    </MudButton>
+                </MudStack>
+            </EditForm>
+
+            <MudText Typo="Typo.body1" Align="Align.Center" Class="mt-8">
+                Don't have an account yet?
+                <a href="" class="mud-link mud-primary-text ms-1" @onclick="IgnoreRegistration" @onclick:preventDefault="true">
+                    Register now
+                </a>
+            </MudText>
+        </MudPaper>
+    </div>
+</MudOverlay>
+
+@code {
+    private static readonly Dictionary<string, object> EmailAttributes =
+        new Dictionary<string, object>
+        {
+            ["autocomplete"] = "username",
+            ["autocapitalize"] = "none",
+            ["spellcheck"] = "false"
+        };
+
+    private static readonly Dictionary<string, object> PasswordAttributes =
+        new Dictionary<string, object>
+        {
+            ["autocomplete"] = "current-password"
+        };
+
+    private readonly LoginFormModel model = new();
+    private MudTextField<string>? emailField;
+    private CancellationTokenSource? loginCancellation;
+    private string? errorMessage;
+    private bool isSubmitting;
+
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    [Parameter]
+    public EventCallback OnAuthenticated { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && emailField is not null)
+            await emailField.FocusAsync();
+    }
+
+    private async Task LoginAsync(EditContext editContext)
+    {
+        if (isSubmitting)
+            return;
+
+        isSubmitting = true;
+        errorMessage = null;
+        loginCancellation = new CancellationTokenSource();
+
+        try
+        {
+            await AuthenticationService.LoginAsync(
+                new LoginRequest(model.Email, model.Password),
+                loginCancellation.Token);
+
+            model.Password = string.Empty;
+            await OnAuthenticated.InvokeAsync();
+        }
+        catch (LoginRejectedException exception)
+        {
+            errorMessage = exception.Message;
+        }
+        catch (OperationCanceledException) when (loginCancellation.IsCancellationRequested)
+        {
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Sign in failed.");
+            errorMessage = "Sign in is unavailable right now. Please try again.";
+        }
+        finally
+        {
+            loginCancellation.Dispose();
+            loginCancellation = null;
+            isSubmitting = false;
+        }
+    }
+
+    private async Task HandleKeyDownAsync(KeyboardEventArgs args)
+    {
+        if (args.Key == "Escape")
+            await CloseAsync();
+    }
+
+    private async Task CloseAsync()
+    {
+        loginCancellation?.Cancel();
+        await OnClose.InvokeAsync();
+    }
+
+    private static void IgnoreRegistration(MouseEventArgs args)
+    {
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        loginCancellation?.Cancel();
+        loginCancellation?.Dispose();
+        return ValueTask.CompletedTask;
+    }
+
+    private sealed class LoginFormModel
+    {
+        [Required, EmailAddress, StringLength(320)]
+        public string Email { get; set; } = string.Empty;
+
+        [Required, StringLength(200)]
+        public string Password { get; set; } = string.Empty;
+    }
+}

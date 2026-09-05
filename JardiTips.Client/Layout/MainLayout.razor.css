@@ -34,6 +34,16 @@
     text-transform: none;
 }
 
+.layout-root ::deep .site-header__account-button {
+    min-width: 44px;
+    padding: 2px;
+    border-radius: 50%;
+}
+
+.layout-root ::deep .site-header__account-button .mud-button-label {
+    line-height: 1;
+}
+
 .layout-root ::deep .site-main {
     padding-top: 2rem;
     padding-bottom: 4rem;

@@ -1,7 +1,8 @@
 using JardiTips.Client.Application.Abstractions;
 using JardiTips.Client.Application.Coordination;
+using JardiTips.Client.Infrastructure.Authentication;
 using JardiTips.Client.Infrastructure.IndexedDb;
-using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.AspNetCore.Components.Authorization;
 
 namespace JardiTips.Client.Infrastructure.Api;
 
@@ -20,7 +21,6 @@ public static class ApiServiceCollectionExtensions
                 options => ApiOptions.TryCreateBaseUri(options.BaseUrl, out _),
                 $"{ApiOptions.SectionName}:BaseUrl must be an absolute HTTP or HTTPS URL.");
 
-        services.TryAddScoped<IAccessTokenProvider, AnonymousAccessTokenProvider>();
         services.AddScoped<HttpClient>(serviceProvider =>
         {
             var options = serviceProvider
@@ -32,10 +32,22 @@ public static class ApiServiceCollectionExtensions
                 BaseAddress = options.CreateBaseUri()
             };
         });
+        services.AddScoped<AuthenticationService>();
+        services.AddScoped<IAuthenticationService>(serviceProvider =>
+            serviceProvider.GetRequiredService<AuthenticationService>());
+        services.AddScoped<IAccessTokenProvider>(serviceProvider =>
+            serviceProvider.GetRequiredService<AuthenticationService>());
+        services.AddScoped<ClientAuthenticationStateProvider>();
+        services.AddScoped<AuthenticationStateProvider>(serviceProvider =>
+            serviceProvider.GetRequiredService<ClientAuthenticationStateProvider>());
         services.AddScoped<IApiClient, ApiClient>();
+        services.AddScoped<IAuthenticationApiSource, AuthenticationApiSource>();
         services.AddScoped<ICategoryApiSource, CategoryApiSource>();
         services.AddScoped<ITipApiSource, TipApiSource>();
         services.AddScoped<BrowserDatabase>();
+        services.AddScoped<IBrowserDataCleaner>(serviceProvider =>
+            serviceProvider.GetRequiredService<BrowserDatabase>());
+        services.AddScoped<IAuthenticationStore, IndexedDbAuthenticationStore>();
         services.AddScoped<ICategoryStore, IndexedDbCategoryStore>();
         services.AddScoped<ITipStore, IndexedDbTipStore>();
         services.AddScoped<CategoryQueryService>();

@@ -134,18 +134,74 @@ public sealed class ApiClient : IApiClient
         CancellationToken cancellationToken)
     {
         var accessToken = await _accessTokenProvider.GetAccessTokenAsync(cancellationToken);
-        if (!string.IsNullOrWhiteSpace(accessToken))
+        if (string.IsNullOrWhiteSpace(accessToken))
+            return await SendCoreAsync(request, cancellationToken);
+
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken.Trim());
+        using var retryRequest = await CloneRequestAsync(request, cancellationToken);
+        var response = await SendCoreAsync(request, cancellationToken);
+
+        if (response.StatusCode != HttpStatusCode.Unauthorized)
+            return response;
+
+        string? refreshedAccessToken;
+        try
         {
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken.Trim());
+            refreshedAccessToken = await _accessTokenProvider.RefreshAccessTokenAsync(cancellationToken);
+        }
+        catch
+        {
+            response.Dispose();
+            throw;
         }
 
-        return await _httpClient.SendAsync(
+        if (string.IsNullOrWhiteSpace(refreshedAccessToken))
+            return response;
+
+        response.Dispose();
+        retryRequest.Headers.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            refreshedAccessToken.Trim());
+
+        return await SendCoreAsync(retryRequest, cancellationToken);
+    }
+
+    private Task<HttpResponseMessage> SendCoreAsync(
+        HttpRequestMessage request,
+        CancellationToken cancellationToken) =>
+        _httpClient.SendAsync(
             request,
             HttpCompletionOption.ResponseHeadersRead,
             cancellationToken);
+
+    private static async Task<HttpRequestMessage> CloneRequestAsync(
+        HttpRequestMessage request,
+        CancellationToken cancellationToken)
+    {
+        var clone = new HttpRequestMessage(request.Method, request.RequestUri)
+        {
+            Version = request.Version,
+            VersionPolicy = request.VersionPolicy
+        };
+
+        foreach (var header in request.Headers)
+            clone.Headers.TryAddWithoutValidation(header.Key, header.Value);
+
+        if (request.Content is not null)
+        {
+            var content = new ByteArrayContent(
+                await request.Content.ReadAsByteArrayAsync(cancellationToken));
+
+            foreach (var header in request.Content.Headers)
+                content.Headers.TryAddWithoutValidation(header.Key, header.Value);
+
+            clone.Content = content;
+        }
+
+        return clone;
     }
 
-    private static async Task EnsureSuccessAsync(
+    internal static async Task EnsureSuccessAsync(
         HttpResponseMessage response,
         CancellationToken cancellationToken)
     {

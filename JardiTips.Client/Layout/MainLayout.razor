@@ -1,4 +1,11 @@
 ﻿@inherits LayoutComponentBase
+@using System.Security.Claims
+@using JardiTips.Client.Application.Abstractions
+@using JardiTips.Client.Features.Authentication.Components
+@inject IAuthenticationService AuthenticationService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject ILogger<MainLayout> Logger
 
 <MudThemeProvider />
 <MudPopoverProvider />
@@ -18,11 +25,38 @@
                     JardiTips
                 </MudButton>
                 <MudSpacer />
-                <MudButton Variant="Variant.Outlined"
-                           Color="Color.Inherit"
-                           Class="site-header__sign-in">
-                    Sign In
-                </MudButton>
+                <AuthorizeView>
+                    <Authorized Context="authenticationState">
+                        <MudMenu>
+                            <ActivatorContent>
+                                <MudButton Variant="Variant.Text"
+                                           Color="Color.Inherit"
+                                           Class="site-header__account-button"
+                                           OnClick="@context.ToggleAsync"
+                                           aria-label="Open account menu">
+                                    <MudAvatar Color="Color.Primary" Size="Size.Medium">
+                                        @GetAvatarInitial(authenticationState.User)
+                                    </MudAvatar>
+                                </MudButton>
+                            </ActivatorContent>
+                            <ChildContent>
+                                <MudMenuItem Icon="@Icons.Material.Rounded.Logout"
+                                             Disabled="@isSigningOut"
+                                             OnClick="PromptSignOutAsync">
+                                    Sign out
+                                </MudMenuItem>
+                            </ChildContent>
+                        </MudMenu>
+                    </Authorized>
+                    <NotAuthorized>
+                        <MudButton Variant="Variant.Outlined"
+                                   Color="Color.Inherit"
+                                   Class="site-header__sign-in"
+                                   OnClick="ShowLogin">
+                            Sign In
+                        </MudButton>
+                    </NotAuthorized>
+                </AuthorizeView>
             </MudContainer>
         </MudAppBar>
         <MudMainContent>
@@ -32,3 +66,66 @@
         </MudMainContent>
     </MudLayout>
 </div>
+
+@if (isLoginVisible)
+{
+    <LoginOverlay OnClose="HideLogin" OnAuthenticated="HideLogin" />
+}
+
+@code {
+    private bool isLoginVisible;
+    private bool isSigningOut;
+
+    private void ShowLogin() => isLoginVisible = true;
+
+    private void HideLogin() => isLoginVisible = false;
+
+    private async Task PromptSignOutAsync()
+    {
+        var options = new DialogOptions
+        {
+            CloseOnEscapeKey = true,
+            FullWidth = true,
+            MaxWidth = MaxWidth.ExtraSmall
+        };
+        var dialog = await DialogService.ShowAsync<SignOutConfirmationDialog>("Sign out", options);
+        var result = await dialog.Result;
+
+        if (result is null || result.Canceled)
+            return;
+
+        isSigningOut = true;
+        try
+        {
+            var remoteLogoutSucceeded = await AuthenticationService.LogoutAsync();
+            if (!remoteLogoutSucceeded)
+            {
+                Snackbar.Add(
+                    "Signed out locally, but the server could not revoke the session. It will expire automatically.",
+                    Severity.Warning);
+            }
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Sign-out cleanup failed.");
+            Snackbar.Add(
+                "You were signed out, but some browser data could not be removed.",
+                Severity.Error);
+        }
+        finally
+        {
+            isSigningOut = false;
+        }
+    }
+
+    private static string GetAvatarInitial(ClaimsPrincipal user)
+    {
+        var source = user.Identity?.Name;
+        if (string.IsNullOrWhiteSpace(source))
+            source = user.FindFirst(ClaimTypes.Email)?.Value;
+
+        return string.IsNullOrWhiteSpace(source)
+            ? "?"
+            : source.Trim()[0].ToString().ToUpperInvariant();
+    }
+}

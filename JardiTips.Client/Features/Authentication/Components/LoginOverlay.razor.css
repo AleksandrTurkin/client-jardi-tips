@@ -1,0 +1,46 @@
+.login-overlay__host {
+    box-sizing: border-box;
+    display: grid;
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100dvh;
+    padding: 16px;
+    place-items: center;
+    outline: none;
+}
+
+.login-overlay__host ::deep .login-panel {
+    width: min(440px, calc(100vw - 32px));
+    max-height: calc(100dvh - 32px);
+    overflow-y: auto;
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 16px;
+    background: var(--mud-palette-surface);
+}
+
+.login-overlay__host ::deep .login-panel__title {
+    font-weight: 700;
+    letter-spacing: -0.03em;
+}
+
+.login-overlay__host ::deep .mud-link {
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.login-overlay__host ::deep .mud-link:hover,
+.login-overlay__host ::deep .mud-link:focus-visible {
+    text-decoration: underline;
+}
+
+@media (max-width: 599.98px) {
+    .login-overlay__host {
+        padding: 12px;
+    }
+
+    .login-overlay__host ::deep .login-panel {
+        width: calc(100vw - 24px);
+        max-height: calc(100dvh - 24px);
+    }
+}
