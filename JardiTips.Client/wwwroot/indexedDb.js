@@ -1,6 +1,8 @@
 const databaseName = "JardiTips";
-const databaseVersion = 4;
-const storeNames = ["categorySnapshots", "tipSnapshots", "authenticationSessions"];
+const databaseVersion = 6;
+const updatedAtPaginationVersion = 5;
+const storeNames = ["categorySnapshots", "tipSnapshots", "authenticationSessions", "userCategorySnapshots"];
+const paginationStoreNames = ["categorySnapshots", "tipSnapshots"];
 
 let databasePromise;
 
@@ -8,11 +10,17 @@ function openDatabase() {
     databasePromise ??= new Promise((resolve, reject) => {
         const request = indexedDB.open(databaseName, databaseVersion);
 
-        request.onupgradeneeded = () => {
+        request.onupgradeneeded = event => {
             const database = request.result;
             for (const storeName of storeNames) {
                 if (!database.objectStoreNames.contains(storeName)) {
                     database.createObjectStore(storeName);
+                }
+            }
+
+            if (event.oldVersion > 0 && event.oldVersion < updatedAtPaginationVersion) {
+                for (const storeName of paginationStoreNames) {
+                    request.transaction.objectStore(storeName).clear();
                 }
             }
         };

@@ -43,18 +43,23 @@ public static class ApiServiceCollectionExtensions
         services.AddScoped<IApiClient, ApiClient>();
         services.AddScoped<IAuthenticationApiSource, AuthenticationApiSource>();
         services.AddScoped<ICategoryApiSource, CategoryApiSource>();
+        services.AddScoped<IUserCategoryApiSource, UserCategoryApiSource>();
         services.AddScoped<ITipApiSource, TipApiSource>();
         services.AddScoped<BrowserDatabase>();
         services.AddScoped<IBrowserDataCleaner>(serviceProvider =>
             serviceProvider.GetRequiredService<BrowserDatabase>());
         services.AddScoped<IAuthenticationStore, IndexedDbAuthenticationStore>();
         services.AddScoped<ICategoryStore, IndexedDbCategoryStore>();
+        services.AddScoped<IUserCategoryStore, IndexedDbUserCategoryStore>();
         services.AddScoped<ITipStore, IndexedDbTipStore>();
         services.AddScoped<CategoryQueryService>();
         services.AddScoped<ICategoryQueries>(serviceProvider =>
             serviceProvider.GetRequiredService<CategoryQueryService>());
         services.AddScoped<ICategoryStartup>(serviceProvider =>
             serviceProvider.GetRequiredService<CategoryQueryService>());
+        services.AddScoped<UserCategoryQueryService>();
+        services.AddScoped<IUserCategoryQueries>(serviceProvider =>
+            serviceProvider.GetRequiredService<UserCategoryQueryService>());
         services.AddScoped<TipQueryService>();
         services.AddScoped<ITipQueries>(serviceProvider =>
             serviceProvider.GetRequiredService<TipQueryService>());
