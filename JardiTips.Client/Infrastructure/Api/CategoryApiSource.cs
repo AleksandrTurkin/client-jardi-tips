@@ -27,6 +27,18 @@ public sealed class CategoryApiSource(IApiClient apiClient) : ICategoryApiSource
         return apiClient.GetAsync<PagedResult<CategoryDto>>(route, cancellationToken);
     }
 
+    public Task LikeAsync(Guid categoryId, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return apiClient.PutAsync<object?>($"categories/{categoryId}/likes/me", null, cancellationToken);
+    }
+
+    public Task UnlikeAsync(Guid categoryId, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return apiClient.DeleteAsync($"categories/{categoryId}/likes/me", cancellationToken);
+    }
+
     public async Task<IReadOnlyList<CategoryDto>> GetAllAsync(CancellationToken cancellationToken)
     {
         var categories = new List<CategoryDto>();

@@ -21,10 +21,21 @@
             </MudText>
         </MudCardContent>
         <MudCardActions Class="category-card__actions d-flex justify-space-between px-2 py-0">
-            <MudIconButton Icon="@Icons.Material.Outlined.FavoriteBorder"
-                           Disabled="true"
-                           Color="Color.Default"
-                           aria-label="Like unavailable" />
+            @if (ShowLike)
+            {
+                <span class="d-flex align-center">
+                    <MudIconButton Icon="@(Category.IsLiked ? Icons.Material.Filled.Favorite : Icons.Material.Outlined.FavoriteBorder)"
+                                   Color="@(Category.IsLiked ? Color.Secondary : Color.Default)"
+                                   Disabled="@(IsLikeDisabled)"
+                                   OnClick="ToggleLikeAsync"
+                                   OnClick:stopPropagation="true"
+                                   aria-label="@LikeAriaLabel"
+                                   aria-pressed="@Category.IsLiked" />
+                    <MudText Typo="Typo.body2" Class="fw-bold" aria-label="@($"{Category.LikesCount} likes")">
+                        @Category.LikesCount
+                    </MudText>
+                </span>
+            }
 
             <MudTooltip Text="@($"This collection contains {Category.TipsCount} tips.")">
                 <span class="d-flex align-center" aria-label="@($"{Category.TipsCount} tips")">
@@ -46,7 +57,28 @@
     public CategoryDto Category { get; set; } = default!;
 
     [Parameter]
+    public bool ShowLike { get; set; } = true;
+
+    [Parameter]
+    public bool CanLike { get; set; }
+
+    [Parameter]
+    public bool IsLikeBusy { get; set; }
+
+    [Parameter]
+    public EventCallback<CategoryDto> OnLikeToggle { get; set; }
+
+    [Parameter]
     public EventCallback<CategoryDto> OnSelected { get; set; }
+
+    private bool IsLikeDisabled => !CanLike || IsLikeBusy;
+
+    private string LikeAriaLabel => (Category.IsLiked, CanLike) switch
+    {
+        (true, true) => $"Unlike {Category.Name}",
+        (false, true) => $"Like {Category.Name}",
+        _ => "Sign in to like collections"
+    };
 
     private string CoverImageSource => string.IsNullOrWhiteSpace(Category.CoverImageUrl)
         || string.Equals(Category.CoverImageUrl, failedImageUrl, StringComparison.Ordinal)
@@ -60,6 +92,8 @@
     }
 
     private Task SelectAsync() => OnSelected.InvokeAsync(Category);
+
+    private Task ToggleLikeAsync() => OnLikeToggle.InvokeAsync(Category);
 
     private Task HandleKeyDownAsync(KeyboardEventArgs args) =>
         args.Key is "Enter" or " "

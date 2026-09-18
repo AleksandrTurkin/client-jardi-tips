@@ -6,7 +6,9 @@
 @implements IAsyncDisposable
 @inject ICategoryQueries CategoryQueries
 @inject IUserCategoryQueries UserCategoryQueries
+@inject ICategoryLikeService CategoryLikeService
 @inject IAuthenticationService AuthenticationService
+@inject ISnackbar Snackbar
 @inject IJSRuntime JS
 @inject ILogger<Home> Logger
 
@@ -71,7 +73,7 @@
                             @foreach (var category in userCategories)
                             {
                                 <div class="category-scroller__item">
-                                    <CategoryCard Category="category" OnSelected="OpenTips" />
+                                    <CategoryCard Category="category" ShowLike="false" OnSelected="OpenTips" />
                                 </div>
                             }
                         </div>
@@ -157,7 +159,11 @@ else
                     @foreach (var category in categories)
                     {
                         <div class="category-scroller__item">
-                            <CategoryCard Category="category" OnSelected="OpenTips" />
+                            <CategoryCard Category="category"
+                                          CanLike="AuthenticationService.IsAuthenticated"
+                                          IsLikeBusy="pendingLikeCategoryIds.Contains(category.Id)"
+                                          OnLikeToggle="ToggleLikeAsync"
+                                          OnSelected="OpenTips" />
                         </div>
                     }
                 </div>
@@ -191,7 +197,11 @@ else
                     @foreach (var category in topCategories)
                     {
                         <div class="category-scroller__item">
-                            <CategoryCard Category="category" OnSelected="OpenTips" />
+                            <CategoryCard Category="category"
+                                          CanLike="AuthenticationService.IsAuthenticated"
+                                          IsLikeBusy="pendingLikeCategoryIds.Contains(category.Id)"
+                                          OnLikeToggle="ToggleLikeAsync"
+                                          OnSelected="OpenTips" />
                         </div>
                     }
                 </div>
@@ -218,6 +228,7 @@ else
     private IReadOnlyList<CategoryDto> userCategories = [];
     private IReadOnlyList<CategoryDto> categories = [];
     private IReadOnlyList<CategoryDto> topCategories = [];
+    private readonly HashSet<Guid> pendingLikeCategoryIds = [];
     private CategoryDto? selectedCategory;
     private long userCategoriesLoadVersion;
     private bool isUserCategoriesLoading;
@@ -378,6 +389,60 @@ else
             ? user.FindFirst(ClaimTypes.NameIdentifier)?.Value
             : null;
 
+    private async Task ToggleLikeAsync(CategoryDto category)
+    {
+        if (!AuthenticationService.IsAuthenticated
+            || !pendingLikeCategoryIds.Add(category.Id))
+        {
+            return;
+        }
+
+        var previousCategories = categories;
+        var previousTopCategories = topCategories;
+
+        var optimistic = category with
+        {
+            IsLiked = !category.IsLiked,
+            LikesCount = Math.Max(0, category.LikesCount + (category.IsLiked ? -1 : 1))
+        };
+
+        ApplyLikeState(optimistic);
+        StateHasChanged();
+
+        try
+        {
+            var updated = await CategoryLikeService.ToggleAsync(category, disposalTokenSource.Token);
+            ApplyLikeState(updated);
+        }
+        catch (OperationCanceledException) when (disposalTokenSource.IsCancellationRequested)
+        {
+            return;
+        }
+        catch (Exception exception)
+        {
+            Logger.LogWarning(exception, "Failed to toggle like for category {CategoryId}.", category.Id);
+            categories = previousCategories;
+            topCategories = previousTopCategories;
+            Snackbar.Add("The like could not be updated. Please try again.", Severity.Error);
+        }
+        finally
+        {
+            pendingLikeCategoryIds.Remove(category.Id);
+            StateHasChanged();
+        }
+    }
+
+    private void ApplyLikeState(CategoryDto updated)
+    {
+        categories = ReplaceCategory(categories, updated);
+        topCategories = ReplaceCategory(topCategories, updated);
+    }
+
+    private static IReadOnlyList<CategoryDto> ReplaceCategory(
+        IReadOnlyList<CategoryDto> source,
+        CategoryDto updated) =>
+        source.Select(existing => existing.Id == updated.Id ? updated : existing).ToList();
+
     private void OpenTips(CategoryDto category) => selectedCategory = category;
 
     private Task CloseTipsAsync()
@@ -417,6 +482,9 @@ else
         userCategories = [];
         isUserCategoriesLoading = GetUserId(user) is not null;
         hasUserCategoriesLoadError = false;
+        StateHasChanged();
+
+        await LoadCategoriesAsync();
         StateHasChanged();
 
         if (GetUserId(user) is null)

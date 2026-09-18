@@ -6,5 +6,7 @@ public sealed record CategoryDto(
     string Description,
     CategoryType Type,
     int TipsCount,
+    int LikesCount,
+    bool IsLiked,
     string? CoverImageUrl,
     DateTime UpdatedAt);

@@ -75,6 +75,10 @@
     color: var(--mud-palette-action-disabled) !important;
 }
 
+.category-card-host ::deep .category-card__actions .mud-icon-button:not(.mud-disabled):hover {
+    color: var(--mud-palette-secondary);
+}
+
 @media (prefers-reduced-motion: reduce) {
     .category-card-host ::deep .category-card {
         transition: none;

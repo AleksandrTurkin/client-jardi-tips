@@ -57,6 +57,7 @@ public static class ApiServiceCollectionExtensions
             serviceProvider.GetRequiredService<CategoryQueryService>());
         services.AddScoped<ICategoryStartup>(serviceProvider =>
             serviceProvider.GetRequiredService<CategoryQueryService>());
+        services.AddScoped<ICategoryLikeService, CategoryLikeService>();
         services.AddScoped<UserCategoryQueryService>();
         services.AddScoped<IUserCategoryQueries>(serviceProvider =>
             serviceProvider.GetRequiredService<UserCategoryQueryService>());

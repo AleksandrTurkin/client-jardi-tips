@@ -1,26 +1,43 @@
+using System.Security.Claims;
 using JardiTips.Client.Application.Abstractions;
 using JardiTips.Client.Features.Categories.Models;
 
 namespace JardiTips.Client.Application.Coordination;
 
-public sealed class CategoryQueryService(
-    ICategoryApiSource apiSource,
-    ICategoryStore store,
-    ILogger<CategoryQueryService> logger) : ICategoryQueries, ICategoryStartup
+public sealed class CategoryQueryService : ICategoryQueries, ICategoryStartup, IAsyncDisposable
 {
     private const int DefaultPageSize = 15;
     private const int MinimumPageSize = 1;
     private const int MaximumPageSize = 100;
     private const string PageContextPrefix = "offset:";
 
+    private readonly ICategoryApiSource apiSource;
+    private readonly ICategoryStore store;
+    private readonly IAuthenticationService authenticationService;
+    private readonly ILogger<CategoryQueryService> logger;
     private readonly Lock synchronizationLock = new();
     private Task? initializationTask;
     private Task? sessionSynchronizationTask;
+    private string? sessionIdentity;
+    private bool disposed;
+
+    public CategoryQueryService(
+        ICategoryApiSource apiSource,
+        ICategoryStore store,
+        IAuthenticationService authenticationService,
+        ILogger<CategoryQueryService> logger)
+    {
+        this.apiSource = apiSource;
+        this.store = store;
+        this.authenticationService = authenticationService;
+        this.logger = logger;
+        authenticationService.UserChanged += OnUserChanged;
+    }
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
         await GetInitializationTask().WaitAsync(cancellationToken);
-        StartSessionSynchronization();
+        StartSessionSynchronization(CurrentIdentity);
     }
 
     public async Task<CategoryDto?> GetByIdAsync(
@@ -28,17 +45,20 @@ public sealed class CategoryQueryService(
         CancellationToken cancellationToken = default)
     {
         await InitializeAsync(cancellationToken);
+        var identity = CurrentIdentity;
         var snapshot = await store.GetSnapshotAsync(cancellationToken);
 
-        if (snapshot is not null)
+        if (snapshot is not null && MatchesIdentity(snapshot, identity))
         {
-            StartSessionSynchronization();
+            StartSessionSynchronization(identity);
             return snapshot.Categories.FirstOrDefault(category => category.Id == id);
         }
 
-        await SynchronizeAsync(cancellationToken);
+        await SynchronizeAsync(identity, cancellationToken);
         snapshot = await store.GetSnapshotAsync(cancellationToken);
-        return snapshot?.Categories.FirstOrDefault(category => category.Id == id);
+        return MatchesIdentity(snapshot, identity)
+            ? snapshot.Categories.FirstOrDefault(category => category.Id == id)
+            : null;
     }
 
     public async Task<PagedResult<CategoryDto>> GetAsync(
@@ -48,15 +68,19 @@ public sealed class CategoryQueryService(
         ArgumentNullException.ThrowIfNull(filter);
         await InitializeAsync(cancellationToken);
 
+        var identity = CurrentIdentity;
         var snapshot = await store.GetSnapshotAsync(cancellationToken);
-        if (snapshot is null)
+        if (snapshot is null || !MatchesIdentity(snapshot, identity))
         {
-            await SynchronizeAsync(cancellationToken);
+            await SynchronizeAsync(identity, cancellationToken);
             snapshot = await store.GetSnapshotAsync(cancellationToken);
+
+            if (!MatchesIdentity(snapshot, identity))
+                snapshot = null;
         }
         else
         {
-            StartSessionSynchronization();
+            StartSessionSynchronization(identity);
         }
 
         var limit = Math.Clamp(
@@ -73,10 +97,9 @@ public sealed class CategoryQueryService(
         return new PagedResult<CategoryDto>(pageContext, data);
     }
 
-    private async Task SynchronizeAsync(CancellationToken cancellationToken)
+    private Task SynchronizeAsync(string? identity, CancellationToken cancellationToken)
     {
-        await GetInitializationTask().WaitAsync(cancellationToken);
-        await GetSessionSynchronizationTask().WaitAsync(cancellationToken);
+        return GetSessionSynchronizationTask(identity).WaitAsync(cancellationToken);
     }
 
     private Task GetInitializationTask()
@@ -85,13 +108,16 @@ public sealed class CategoryQueryService(
             return initializationTask ??= store.InitializeAsync(CancellationToken.None);
     }
 
-    private Task GetSessionSynchronizationTask()
+    private Task GetSessionSynchronizationTask(string? identity)
     {
         lock (synchronizationLock)
         {
-            if (sessionSynchronizationTask is null)
+            ObjectDisposedException.ThrowIf(disposed, this);
+
+            if (sessionSynchronizationTask is null || sessionIdentity != identity)
             {
-                sessionSynchronizationTask = SynchronizeCoreAsync();
+                sessionIdentity = identity;
+                sessionSynchronizationTask = SynchronizeCoreAsync(identity);
                 _ = ObserveSynchronizationAsync(sessionSynchronizationTask);
             }
 
@@ -99,9 +125,15 @@ public sealed class CategoryQueryService(
         }
     }
 
-    private void StartSessionSynchronization()
+    private void StartSessionSynchronization(string? identity)
     {
-        _ = GetSessionSynchronizationTask();
+        try
+        {
+            _ = GetSessionSynchronizationTask(identity);
+        }
+        catch (ObjectDisposedException)
+        {
+        }
     }
 
     private async Task ObserveSynchronizationAsync(Task synchronizationTask)
@@ -116,13 +148,49 @@ public sealed class CategoryQueryService(
         }
     }
 
-    private async Task SynchronizeCoreAsync()
+    private async Task SynchronizeCoreAsync(string? identity)
     {
+        await GetInitializationTask();
         var categories = await apiSource.GetAllAsync(CancellationToken.None);
         await store.ReplaceAsync(
-            new CategorySnapshot(categories, DateTimeOffset.UtcNow),
+            new CategorySnapshot(categories, DateTimeOffset.UtcNow, identity),
             CancellationToken.None);
     }
+
+    private string? CurrentIdentity => GetUserId(authenticationService.CurrentUser);
+
+    private static bool MatchesIdentity(CategorySnapshot? snapshot, string? identity) =>
+        snapshot is not null && snapshot.Identity == identity;
+
+    private void OnUserChanged(ClaimsPrincipal user)
+    {
+        lock (synchronizationLock)
+        {
+            if (disposed)
+                return;
+
+            sessionIdentity = null;
+            sessionSynchronizationTask = null;
+        }
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        lock (synchronizationLock)
+        {
+            if (disposed)
+                return ValueTask.CompletedTask;
+
+            disposed = true;
+            authenticationService.UserChanged -= OnUserChanged;
+            return ValueTask.CompletedTask;
+        }
+    }
+
+    private static string? GetUserId(ClaimsPrincipal user) =>
+        user.Identity?.IsAuthenticated == true
+            ? user.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            : null;
 
     private static int ParseOffset(string? pageContext)
     {

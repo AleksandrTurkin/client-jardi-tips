@@ -9,4 +9,8 @@ public interface ICategoryApiSource
         CancellationToken cancellationToken);
 
     Task<IReadOnlyList<CategoryDto>> GetAllAsync(CancellationToken cancellationToken);
+
+    Task LikeAsync(Guid categoryId, CancellationToken cancellationToken);
+
+    Task UnlikeAsync(Guid categoryId, CancellationToken cancellationToken);
 }
