@@ -1,0 +1,29 @@
+.category-carousel-skeleton {
+    min-width: 0;
+}
+
+::deep .category-carousel-skeleton__title {
+    margin-bottom: 1.5rem;
+}
+
+.category-carousel-skeleton__scroller {
+    display: flex;
+    gap: 24px;
+    margin-inline: -4px;
+    padding: 4px 4px 8px;
+    overflow: hidden;
+}
+
+.category-carousel-skeleton__item {
+    flex: 0 0 clamp(270px, 32vw, 360px);
+}
+
+@media (max-width: 599.98px) {
+    .category-carousel-skeleton__scroller {
+        gap: 16px;
+    }
+
+    .category-carousel-skeleton__item {
+        flex-basis: min(84vw, 330px);
+    }
+}

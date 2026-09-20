@@ -1,62 +1,13 @@
-.category-section {
-    min-width: 0;
-}
-
-::deep .category-section__paper {
-    padding: 24px;
-}
-
-.category-section--top {
-    margin-top: 32px;
-}
-
-.category-section--collections {
+::deep .home-collections {
     margin-bottom: 32px;
 }
 
-.category-section__header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 24px;
-    margin-bottom: 1.5rem;
+::deep .home-top-categories {
+    margin-top: 32px;
 }
 
-::deep .category-section__title {
-    font-weight: 700;
-    letter-spacing: -0.035em;
-}
-
-.category-section__controls {
-    display: flex;
-    flex: 0 0 auto;
-    gap: 8px;
-}
-
-::deep .category-section__controls .mud-icon-button {
-    border-radius: 50%;
-}
-
-::deep .category-section__skeleton-title {
-    margin-bottom: 1.5rem;
-}
-
-.category-scroller {
-    display: flex;
-    gap: 24px;
-    margin-inline: -4px;
-    padding: 4px 4px 8px;
-    overflow-x: auto;
-    overscroll-behavior-inline: contain;
-    scroll-snap-type: inline mandatory;
-    scrollbar-color: var(--mud-palette-lines-default) transparent;
-    scrollbar-width: thin;
-    -webkit-overflow-scrolling: touch;
-}
-
-.category-scroller__item {
-    flex: 0 0 clamp(270px, 32vw, 360px);
-    scroll-snap-align: start;
+::deep .home-top-categories-skeleton {
+    margin-top: 32px;
 }
 
 .home-state {
@@ -80,32 +31,15 @@
 }
 
 @media (max-width: 599.98px) {
-    ::deep .category-section__paper {
-        padding: 16px;
-    }
-
-    .category-section--top {
-        margin-top: 24px;
-    }
-
-    .category-section--collections {
+    ::deep .home-collections {
         margin-bottom: 24px;
     }
 
-    ::deep .category-section__title {
-        font-size: 2rem;
+    ::deep .home-top-categories {
+        margin-top: 24px;
     }
 
-    .category-section__header {
-        gap: 12px;
-        margin-bottom: 1rem;
-    }
-
-    .category-scroller {
-        gap: 16px;
-    }
-
-    .category-scroller__item {
-        flex-basis: min(84vw, 330px);
+    ::deep .home-top-categories-skeleton {
+        margin-top: 24px;
     }
 }

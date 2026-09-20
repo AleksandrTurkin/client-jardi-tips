@@ -45,6 +45,7 @@ public static class ApiServiceCollectionExtensions
         services.AddScoped<ICategoryApiSource, CategoryApiSource>();
         services.AddScoped<IUserCategoryApiSource, UserCategoryApiSource>();
         services.AddScoped<ITipApiSource, TipApiSource>();
+        services.AddScoped<IHomeCoordinator, HomeCoordinator>();
         services.AddScoped<BrowserDatabase>();
         services.AddScoped<IBrowserDataCleaner>(serviceProvider =>
             serviceProvider.GetRequiredService<BrowserDatabase>());

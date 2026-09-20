@@ -1,127 +1,102 @@
-﻿@page "/"
-@using System.Security.Claims
+@page "/"
 @using JardiTips.Client.Application.Abstractions
-@using JardiTips.Client.Features.Categories.Models
+@using JardiTips.Client.Features.Categories.Components
 @using JardiTips.Client.Shared.Components
 @implements IAsyncDisposable
-@inject ICategoryQueries CategoryQueries
-@inject IUserCategoryQueries UserCategoryQueries
-@inject ICategoryLikeService CategoryLikeService
+@inject IHomeCoordinator HomeCoordinator
 @inject IAuthenticationService AuthenticationService
 @inject ISnackbar Snackbar
-@inject IJSRuntime JS
-@inject ILogger<Home> Logger
 
 <PageTitle>Jardi Tips</PageTitle>
 
 <AuthorizeView>
     <Authorized>
-        <div class="category-section__paper-wrapper category-section--collections">
-            <MudPaper Square="true" Elevation="3" Class="category-section__paper">
-                <section class="category-section" aria-labelledby="my-collections-title">
-                    <div class="category-section__header">
-                        <MudText Typo="Typo.h3" HtmlTag="h1" id="my-collections-title" Class="category-section__title">
-                            My Collections
-                        </MudText>
-                        @if (userCategories.Count > 0)
-                        {
-                            <div class="category-section__controls">
-                                <MudIconButton Icon="@Icons.Material.Rounded.ChevronLeft"
-                                               Color="Color.Primary"
-                                               Variant="Variant.Outlined"
-                                               aria-label="Scroll my collections left"
-                                               aria-controls="my-collections-scroller"
-                                               OnClick="@(() => ScrollAsync(myCollectionsScroller, -1))" />
-                                <MudIconButton Icon="@Icons.Material.Rounded.ChevronRight"
-                                               Color="Color.Primary"
-                                               Variant="Variant.Outlined"
-                                               aria-label="Scroll my collections right"
-                                               aria-controls="my-collections-scroller"
-                                               OnClick="@(() => ScrollAsync(myCollectionsScroller, 1))" />
-                            </div>
-                        }
-                    </div>
-                    @if (isUserCategoriesLoading)
-                    {
-                        <div class="category-scroller" role="status" aria-label="Loading my collections">
+        <div class="home-collections">
+            @if (State.IsUserCategoriesLoading)
+            {
+                <MudPaper Square="true" Elevation="3" Class="category-carousel__paper">
+                    <section class="category-carousel" aria-labelledby="my-collections-title">
+                        <div class="category-carousel__header">
+                            <MudText Typo="Typo.h3" HtmlTag="h1" id="my-collections-title" Class="category-carousel__title">
+                                My Collections
+                            </MudText>
+                        </div>
+                        <div class="category-carousel__scroller" role="status" aria-label="Loading my collections">
                             @for (var index = 0; index < 3; index++)
                             {
-                                <div class="category-scroller__item">
+                                <div class="category-carousel__item">
                                     <CategoryCardSkeleton />
                                 </div>
                             }
                         </div>
-                    }
-                    else if (hasUserCategoriesLoadError)
-                    {
+                    </section>
+                </MudPaper>
+            }
+            else if (State.HasUserCategoriesLoadError)
+            {
+                <MudPaper Square="true" Elevation="3" Class="category-carousel__paper">
+                    <section class="category-carousel" aria-labelledby="my-collections-title">
+                        <div class="category-carousel__header">
+                            <MudText Typo="Typo.h3" HtmlTag="h1" id="my-collections-title" Class="category-carousel__title">
+                                My Collections
+                            </MudText>
+                        </div>
                         <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">
                             <MudText Typo="Typo.body1">Your collections could not be loaded.</MudText>
-                            <MudButton Variant="Variant.Text" Color="Color.Warning" OnClick="RetryUserCategoriesAsync" Class="mt-2">
+                            <MudButton Variant="Variant.Text" Color="Color.Warning" OnClick="ReloadUserCategoriesAsync" Class="mt-2">
                                 Try again
                             </MudButton>
                         </MudAlert>
-                    }
-                    else if (userCategories.Count == 0)
-                    {
+                    </section>
+                </MudPaper>
+            }
+            else if (State.UserCategories.Count == 0)
+            {
+                <MudPaper Square="true" Elevation="3" Class="category-carousel__paper">
+                    <section class="category-carousel" aria-labelledby="my-collections-title">
+                        <div class="category-carousel__header">
+                            <MudText Typo="Typo.h3" HtmlTag="h1" id="my-collections-title" Class="category-carousel__title">
+                                My Collections
+                            </MudText>
+                        </div>
                         <MudText Typo="Typo.body1" Color="Color.Secondary">
                             You do not have any collections yet.
                         </MudText>
-                    }
-                    else
-                    {
-                        <div id="my-collections-scroller" class="category-scroller" aria-label="My collections" @ref="myCollectionsScroller">
-                            @foreach (var category in userCategories)
-                            {
-                                <div class="category-scroller__item">
-                                    <CategoryCard Category="category" ShowLike="false" OnSelected="OpenTips" />
-                                </div>
-                            }
-                        </div>
-                    }
-                </section>
-            </MudPaper>
+                    </section>
+                </MudPaper>
+            }
+            else
+            {
+                <CategoryCarousel Title="My Collections"
+                                  HeadingTag="h1"
+                                  AriaLabel="My collections"
+                                  TitleId="my-collections-title"
+                                  ScrollerId="my-collections-scroller"
+                                  Categories="State.UserCategories"
+                                  ShowLike="false"
+                                  OnSelected="SelectCategory" />
+            }
         </div>
     </Authorized>
 </AuthorizeView>
 
-@if (isLoading)
+@if (State.IsLoading)
 {
     <div role="status" aria-label="Loading categories">
-        <section class="category-section" aria-hidden="true">
-            <MudSkeleton SkeletonType="SkeletonType.Text" Animation="Animation.Wave" Width="240px" Height="52px" Class="category-section__skeleton-title" />
-            <div class="category-scroller">
-                @for (var index = 0; index < 3; index++)
-                {
-                    <div class="category-scroller__item">
-                        <CategoryCardSkeleton />
-                    </div>
-                }
-            </div>
-        </section>
-
-        <section class="category-section category-section--top" aria-hidden="true">
-            <MudSkeleton SkeletonType="SkeletonType.Text" Animation="Animation.Wave" Width="210px" Height="52px" Class="category-section__skeleton-title" />
-            <div class="category-scroller">
-                @for (var index = 0; index < 3; index++)
-                {
-                    <div class="category-scroller__item">
-                        <CategoryCardSkeleton />
-                    </div>
-                }
-            </div>
-        </section>
+        <CategoryCarouselSkeleton TitleWidth="240px" />
+        <CategoryCarouselSkeleton TitleWidth="210px" Class="home-top-categories-skeleton" />
     </div>
 }
-else if (hasLoadError)
+else if (State.HasLoadError)
 {
     <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Class="home-alert">
         <MudText Typo="Typo.body1">Categories could not be loaded. Please try again.</MudText>
-        <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="LoadCategoriesAsync" Class="mt-2">
+        <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="ReloadCategoriesAsync" Class="mt-2">
             Try again
         </MudButton>
     </MudAlert>
 }
-else if (categories.Count == 0)
+else if (State.Categories.Count == 0)
 {
     <MudPaper Outlined="true" Class="home-state home-state--empty">
         <MudIcon Icon="@Icons.Material.Outlined.Yard" Color="Color.Primary" Size="Size.Large" />
@@ -133,377 +108,32 @@ else if (categories.Count == 0)
 }
 else
 {
-    <div class="category-section__paper-wrapper">
-        <MudPaper Square="true" Elevation="3" Class="category-section__paper">
-            <section class="category-section" aria-labelledby="new-releases-title">
-                <div class="category-section__header">
-                    <MudText Typo="Typo.h3" HtmlTag="h1" id="new-releases-title" Class="category-section__title">
-                        New Releases
-                    </MudText>
-                    <div class="category-section__controls">
-                        <MudIconButton Icon="@Icons.Material.Rounded.ChevronLeft"
-                                       Color="Color.Primary"
-                                       Variant="Variant.Outlined"
-                                       aria-label="Scroll new releases left"
-                                       aria-controls="new-releases-scroller"
-                                       OnClick="@(() => ScrollAsync(newReleasesScroller, -1))" />
-                        <MudIconButton Icon="@Icons.Material.Rounded.ChevronRight"
-                                       Color="Color.Primary"
-                                       Variant="Variant.Outlined"
-                                       aria-label="Scroll new releases right"
-                                       aria-controls="new-releases-scroller"
-                                       OnClick="@(() => ScrollAsync(newReleasesScroller, 1))" />
-                    </div>
-                </div>
-                <div id="new-releases-scroller" class="category-scroller" aria-label="New releases" @ref="newReleasesScroller">
-                    @foreach (var category in categories)
-                    {
-                        <div class="category-scroller__item">
-                            <CategoryCard Category="category"
-                                          CanLike="AuthenticationService.IsAuthenticated"
-                                          IsLikeBusy="pendingLikeCategoryIds.Contains(category.Id)"
-                                          OnLikeToggle="ToggleLikeAsync"
-                                          OnSelected="OpenTips" />
-                        </div>
-                    }
-                </div>
-            </section>
-        </MudPaper>
-    </div>
+    <CategoryCarousel Title="New Releases"
+                      HeadingTag="h1"
+                      AriaLabel="New releases"
+                      TitleId="new-releases-title"
+                      ScrollerId="new-releases-scroller"
+                      Categories="State.Categories"
+                      PendingLikeCategoryIds="State.PendingLikeCategoryIds"
+                      CanLike="AuthenticationService.IsAuthenticated"
+                      OnLikeToggle="ToggleLikeAsync"
+                      OnSelected="SelectCategory" />
 
-    <div class="category-section__paper-wrapper category-section--top">
-        <MudPaper Square="true" Elevation="3" Class="category-section__paper">
-            <section class="category-section" aria-labelledby="top-courses-title">
-                <div class="category-section__header">
-                    <MudText Typo="Typo.h3" HtmlTag="h2" id="top-courses-title" Class="category-section__title">
-                        Top Courses
-                    </MudText>
-                    <div class="category-section__controls">
-                        <MudIconButton Icon="@Icons.Material.Rounded.ChevronLeft"
-                                       Color="Color.Primary"
-                                       Variant="Variant.Outlined"
-                                       aria-label="Scroll top courses left"
-                                       aria-controls="top-courses-scroller"
-                                       OnClick="@(() => ScrollAsync(topCoursesScroller, -1))" />
-                        <MudIconButton Icon="@Icons.Material.Rounded.ChevronRight"
-                                       Color="Color.Primary"
-                                       Variant="Variant.Outlined"
-                                       aria-label="Scroll top courses right"
-                                       aria-controls="top-courses-scroller"
-                                       OnClick="@(() => ScrollAsync(topCoursesScroller, 1))" />
-                    </div>
-                </div>
-                <div id="top-courses-scroller" class="category-scroller" aria-label="Top courses" @ref="topCoursesScroller">
-                    @foreach (var category in topCategories)
-                    {
-                        <div class="category-scroller__item">
-                            <CategoryCard Category="category"
-                                          CanLike="AuthenticationService.IsAuthenticated"
-                                          IsLikeBusy="pendingLikeCategoryIds.Contains(category.Id)"
-                                          OnLikeToggle="ToggleLikeAsync"
-                                          OnSelected="OpenTips" />
-                        </div>
-                    }
-                </div>
-            </section>
-        </MudPaper>
-    </div>
+    <CategoryCarousel Title="Top Courses"
+                      AriaLabel="Top courses"
+                      TitleId="top-courses-title"
+                      ScrollerId="top-courses-scroller"
+                      WrapperClass="home-top-categories"
+                      Categories="State.TopCategories"
+                      PendingLikeCategoryIds="State.PendingLikeCategoryIds"
+                      CanLike="AuthenticationService.IsAuthenticated"
+                      OnLikeToggle="ToggleLikeAsync"
+                      OnSelected="SelectCategory" />
 }
 
-@if (selectedCategory is not null)
+@if (State.SelectedCategory is not null)
 {
-    <TipsViewer @key="selectedCategory.Id"
-                Category="selectedCategory"
-                OnClose="CloseTipsAsync" />
-}
-
-@code {
-    private const int PageSize = 100;
-    private readonly CancellationTokenSource disposalTokenSource = new();
-    private IJSObjectReference? module;
-    private CancellationTokenSource? userCategoriesLoadTokenSource;
-    private ElementReference myCollectionsScroller;
-    private ElementReference newReleasesScroller;
-    private ElementReference topCoursesScroller;
-    private IReadOnlyList<CategoryDto> userCategories = [];
-    private IReadOnlyList<CategoryDto> categories = [];
-    private IReadOnlyList<CategoryDto> topCategories = [];
-    private readonly HashSet<Guid> pendingLikeCategoryIds = [];
-    private CategoryDto? selectedCategory;
-    private long userCategoriesLoadVersion;
-    private bool isUserCategoriesLoading;
-    private bool hasUserCategoriesLoadError;
-    private bool isLoading = true;
-    private bool hasLoadError;
-
-    protected override async Task OnInitializedAsync()
-    {
-        AuthenticationService.UserChanged += OnUserChanged;
-        isUserCategoriesLoading = AuthenticationService.IsAuthenticated;
-
-        var publicCategoriesTask = LoadCategoriesAsync();
-        var userCategoriesTask = AuthenticationService.IsAuthenticated
-            ? LoadUserCategoriesAsync(AuthenticationService.CurrentUser)
-            : Task.CompletedTask;
-
-        await Task.WhenAll(publicCategoriesTask, userCategoriesTask);
-    }
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-            module = await JS.InvokeAsync<IJSObjectReference>("import", "./Pages/Home.razor.js");
-        
-    }
-
-    private async Task ScrollAsync(ElementReference scroller, int direction)
-    {
-        if (module is not null)
-            await module.InvokeVoidAsync("scrollCategories", scroller, direction);
-    }
-
-    private async Task LoadCategoriesAsync()
-    {
-        isLoading = true;
-        hasLoadError = false;
-
-        try
-        {
-            var loadedCategories = new List<CategoryDto>();
-            var visitedPageContexts = new HashSet<string>(StringComparer.Ordinal);
-            string? pageContext = null;
-
-            do
-            {
-                var page = await CategoryQueries.GetAsync(
-                    new CategoriesFilter(pageContext, PageSize),
-                    disposalTokenSource.Token);
-
-                loadedCategories.AddRange(page.Data);
-                pageContext = page.PageContext;
-            }
-            while (pageContext is not null && visitedPageContexts.Add(pageContext));
-
-            categories = loadedCategories
-                .OrderByDescending(category => category.UpdatedAt)
-                .ToList();
-
-            topCategories = categories.Take(4).ToList();
-        }
-        catch (OperationCanceledException) when (disposalTokenSource.IsCancellationRequested)
-        {
-        }
-        catch (Exception exception)
-        {
-            Logger.LogError(exception, "Failed to load categories for the home page.");
-            hasLoadError = true;
-        }
-        finally
-        {
-            isLoading = false;
-        }
-    }
-
-    private async Task LoadUserCategoriesAsync(ClaimsPrincipal user)
-    {
-        var userId = GetUserId(user);
-        if (userId is null)
-            return;
-
-        var loadVersion = Interlocked.Increment(ref userCategoriesLoadVersion);
-        isUserCategoriesLoading = true;
-        hasUserCategoriesLoadError = false;
-        var cancellation = CancellationTokenSource.CreateLinkedTokenSource(disposalTokenSource.Token);
-        var previousCancellation = Interlocked.Exchange(ref userCategoriesLoadTokenSource, cancellation);
-        previousCancellation?.Cancel();
-
-        try
-        {
-            var loadedCategories = new List<CategoryDto>();
-            var visitedPageContexts = new HashSet<string>(StringComparer.Ordinal);
-            CategoryDto? favorite = null;
-            string? pageContext = null;
-
-            do
-            {
-                var page = await UserCategoryQueries.GetAsync(
-                    new CategoriesFilter(pageContext, PageSize),
-                    cancellation.Token);
-
-                if (pageContext is null)
-                    favorite = page.Favorite;
-
-                loadedCategories.AddRange(page.Categories.Data);
-
-                if (!string.IsNullOrWhiteSpace(page.Categories.PageContext)
-                    && !visitedPageContexts.Add(page.Categories.PageContext))
-                {
-                    throw new InvalidOperationException("The user categories query returned a repeated page cursor.");
-                }
-
-                pageContext = page.Categories.PageContext;
-            }
-            while (!string.IsNullOrWhiteSpace(pageContext));
-
-            cancellation.Token.ThrowIfCancellationRequested();
-            if (loadVersion != Volatile.Read(ref userCategoriesLoadVersion)
-                || !string.Equals(userId, GetUserId(AuthenticationService.CurrentUser), StringComparison.Ordinal))
-            {
-                return;
-            }
-
-            var collections = new List<CategoryDto>(loadedCategories.Count + (favorite is null ? 0 : 1));
-            if (favorite is not null)
-                collections.Add(favorite);
-
-            collections.AddRange(loadedCategories);
-            userCategories = collections;
-        }
-        catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
-        {
-        }
-        catch (Exception exception)
-        {
-            Logger.LogWarning(exception, "Failed to load user collections for the home page.");
-            if (loadVersion == Volatile.Read(ref userCategoriesLoadVersion)
-                && string.Equals(userId, GetUserId(AuthenticationService.CurrentUser), StringComparison.Ordinal))
-            {
-                hasUserCategoriesLoadError = true;
-            }
-        }
-        finally
-        {
-            if (loadVersion == Volatile.Read(ref userCategoriesLoadVersion)
-                && string.Equals(userId, GetUserId(AuthenticationService.CurrentUser), StringComparison.Ordinal))
-            {
-                isUserCategoriesLoading = false;
-            }
-
-            Interlocked.CompareExchange(ref userCategoriesLoadTokenSource, null, cancellation);
-            cancellation.Dispose();
-        }
-    }
-
-    private static string? GetUserId(ClaimsPrincipal user) =>
-        user.Identity?.IsAuthenticated == true
-            ? user.FindFirst(ClaimTypes.NameIdentifier)?.Value
-            : null;
-
-    private async Task ToggleLikeAsync(CategoryDto category)
-    {
-        if (!AuthenticationService.IsAuthenticated
-            || !pendingLikeCategoryIds.Add(category.Id))
-        {
-            return;
-        }
-
-        var previousCategories = categories;
-        var previousTopCategories = topCategories;
-
-        var optimistic = category with
-        {
-            IsLiked = !category.IsLiked,
-            LikesCount = Math.Max(0, category.LikesCount + (category.IsLiked ? -1 : 1))
-        };
-
-        ApplyLikeState(optimistic);
-        StateHasChanged();
-
-        try
-        {
-            var updated = await CategoryLikeService.ToggleAsync(category, disposalTokenSource.Token);
-            ApplyLikeState(updated);
-        }
-        catch (OperationCanceledException) when (disposalTokenSource.IsCancellationRequested)
-        {
-            return;
-        }
-        catch (Exception exception)
-        {
-            Logger.LogWarning(exception, "Failed to toggle like for category {CategoryId}.", category.Id);
-            categories = previousCategories;
-            topCategories = previousTopCategories;
-            Snackbar.Add("The like could not be updated. Please try again.", Severity.Error);
-        }
-        finally
-        {
-            pendingLikeCategoryIds.Remove(category.Id);
-            StateHasChanged();
-        }
-    }
-
-    private void ApplyLikeState(CategoryDto updated)
-    {
-        categories = ReplaceCategory(categories, updated);
-        topCategories = ReplaceCategory(topCategories, updated);
-    }
-
-    private static IReadOnlyList<CategoryDto> ReplaceCategory(
-        IReadOnlyList<CategoryDto> source,
-        CategoryDto updated) =>
-        source.Select(existing => existing.Id == updated.Id ? updated : existing).ToList();
-
-    private void OpenTips(CategoryDto category) => selectedCategory = category;
-
-    private Task CloseTipsAsync()
-    {
-        selectedCategory = null;
-        return Task.CompletedTask;
-    }
-
-    private async Task RetryUserCategoriesAsync()
-    {
-        if (!AuthenticationService.IsAuthenticated)
-            return;
-
-        var loadTask = LoadUserCategoriesAsync(AuthenticationService.CurrentUser);
-        StateHasChanged();
-        await loadTask;
-    }
-
-    private void OnUserChanged(ClaimsPrincipal user)
-    {
-        var transitionVersion = Interlocked.Increment(ref userCategoriesLoadVersion);
-        Interlocked.Exchange(ref userCategoriesLoadTokenSource, null)?.Cancel();
-        _ = InvokeAsync(() => ApplyUserChangeAsync(user, transitionVersion));
-    }
-
-    private async Task ApplyUserChangeAsync(ClaimsPrincipal user, long transitionVersion)
-    {
-        if (transitionVersion != Volatile.Read(ref userCategoriesLoadVersion))
-            return;
-
-        if (selectedCategory is not null
-            && userCategories.Any(category => category.Id == selectedCategory.Id))
-        {
-            selectedCategory = null;
-        }
-
-        userCategories = [];
-        isUserCategoriesLoading = GetUserId(user) is not null;
-        hasUserCategoriesLoadError = false;
-        StateHasChanged();
-
-        await LoadCategoriesAsync();
-        StateHasChanged();
-
-        if (GetUserId(user) is null)
-            return;
-
-        await LoadUserCategoriesAsync(user);
-        StateHasChanged();
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        AuthenticationService.UserChanged -= OnUserChanged;
-        Interlocked.Increment(ref userCategoriesLoadVersion);
-        Interlocked.Exchange(ref userCategoriesLoadTokenSource, null)?.Cancel();
-        await disposalTokenSource.CancelAsync();
-
-        if (module is not null)
-            await module.DisposeAsync();
-        
-        disposalTokenSource.Dispose();
-    }
+    <TipsViewer @key="State.SelectedCategory.Id"
+                Category="State.SelectedCategory"
+                OnClose="CloseTips" />
 }

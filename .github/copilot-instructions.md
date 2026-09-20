@@ -22,8 +22,8 @@
 Use the existing folders according to these responsibilities:
 
 - `Application/Abstractions`: client-facing contracts such as `IApiClient`, token access, browser services, and persistence interfaces.
-- `Application/Coordination`: cross-service workflows and Rx.NET coordinators when reactive composition is justified.
-- `Features/<Feature>`: feature-owned routes, wire contracts, typed services, immutable state records, stores, and components.
+- `Application/Coordination`: application-wide workflows shared by multiple features and Rx.NET coordinators when reactive composition is justified.
+- `Features/<Feature>`: feature-owned routes, wire contracts, typed services, immutable state records, stores, coordinators, and components.
 - `Infrastructure/Api`: generic HTTP implementation, API configuration, JSON handling, authentication headers, and Problem Details handling.
 - `Infrastructure/Browser`: isolated browser integrations.
 - `Infrastructure/IndexedDb`: Dexie modules and typed C# repository implementations.
@@ -90,6 +90,19 @@ Follow this dependency direction:
 - Keep components focused on rendering state and forwarding user intent.
 - Coordinators may synchronize API, browser events, local persistence, and stores.
 - Services and repositories must not depend on Blazor components.
+
+## Feature Coordinator Principle
+
+- Introduce a feature coordinator when a feature combines multiple services, authentication or browser events, cancellation/versioning, optimistic updates, or other stateful workflows.
+- Keep a feature coordinator and its contract under `Features/<Feature>/Coordination`; reserve `Application/Coordination` for workflows shared across features.
+- Let the coordinator own the feature's immutable rendered state and publish only read-only state notifications. Never expose mutable collections, subjects, or internal cancellation sources.
+- Expose intent-oriented operations such as initialize, retry, select, close, or toggle instead of generic setters or transport-oriented methods.
+- Keep Blazor components thin: render coordinator state, forward user intent, marshal notifications through `InvokeAsync`, and unsubscribe during disposal.
+- Keep coordinators independent of Razor components and UI libraries such as MudBlazor. Return presentation-neutral operation results so the component can display snackbars, dialogs, or navigation feedback.
+- Delegate HTTP, persistence, and token behavior to existing feature services and infrastructure abstractions; coordinators must not use `HttpClient`, IndexedDB, or JavaScript transport APIs directly.
+- Make activation, deactivation, and disposal idempotent. Cancel in-flight work and detach event subscriptions so repeated navigation cannot leak callbacks or duplicate work.
+- Preserve the previous immutable state for optimistic mutations and restore it when the operation fails.
+- Do not add a coordinator for a simple component that performs one independent asynchronous operation without shared state or workflow coordination.
 
 ## UX and Performance
 

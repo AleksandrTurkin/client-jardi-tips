@@ -1,0 +1,28 @@
+@using JardiTips.Client.Shared.Components
+
+<section class="category-carousel-skeleton @Class" aria-hidden="true">
+    <MudSkeleton SkeletonType="SkeletonType.Text"
+                 Animation="Animation.Wave"
+                 Width="@TitleWidth"
+                 Height="52px"
+                 Class="category-carousel-skeleton__title" />
+    <div class="category-carousel-skeleton__scroller">
+        @for (var index = 0; index < ItemCount; index++)
+        {
+            <div class="category-carousel-skeleton__item">
+                <CategoryCardSkeleton />
+            </div>
+        }
+    </div>
+</section>
+
+@code {
+    [Parameter]
+    public string TitleWidth { get; set; } = "240px";
+
+    [Parameter]
+    public int ItemCount { get; set; } = 3;
+
+    [Parameter]
+    public string? Class { get; set; }
+}

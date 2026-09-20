@@ -1,0 +1,107 @@
+@using JardiTips.Client.Features.Categories.Models
+@using JardiTips.Client.Shared.Components
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+
+<div class="category-carousel__wrapper @WrapperClass">
+    <MudPaper Square="true" Elevation="3" Class="category-carousel__paper">
+        <section class="category-carousel" aria-labelledby="@TitleId">
+            <div class="category-carousel__header">
+                <MudText Typo="Typo.h3" HtmlTag="@HeadingTag" id="@TitleId" Class="category-carousel__title">
+                    @Title
+                </MudText>
+                @if (Categories.Count > 0)
+                {
+                    <div class="category-carousel__controls">
+                        <MudIconButton Icon="@Icons.Material.Rounded.ChevronLeft"
+                                       Color="Color.Primary"
+                                       Variant="Variant.Outlined"
+                                       aria-label="@($"Scroll {AriaLabel} left")"
+                                       aria-controls="@ScrollerId"
+                                       OnClick="@(() => ScrollAsync(-1))" />
+                        <MudIconButton Icon="@Icons.Material.Rounded.ChevronRight"
+                                       Color="Color.Primary"
+                                       Variant="Variant.Outlined"
+                                       aria-label="@($"Scroll {AriaLabel} right")"
+                                       aria-controls="@ScrollerId"
+                                       OnClick="@(() => ScrollAsync(1))" />
+                    </div>
+                }
+            </div>
+            <div id="@ScrollerId" class="category-carousel__scroller" aria-label="@AriaLabel" @ref="scroller">
+                @foreach (var category in Categories)
+                {
+                    <div class="category-carousel__item" @key="category.Id">
+                        <CategoryCard Category="category"
+                                      ShowLike="ShowLike"
+                                      CanLike="CanLike"
+                                      IsLikeBusy="PendingLikeCategoryIds.Contains(category.Id)"
+                                      OnLikeToggle="OnLikeToggle"
+                                      OnSelected="OnSelected" />
+                    </div>
+                }
+            </div>
+        </section>
+    </MudPaper>
+</div>
+
+@code {
+    private IJSObjectReference? module;
+    private ElementReference scroller;
+
+    [Parameter, EditorRequired]
+    public string Title { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public string AriaLabel { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public string TitleId { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public string ScrollerId { get; set; } = string.Empty;
+
+    [Parameter]
+    public string HeadingTag { get; set; } = "h2";
+
+    [Parameter]
+    public string? WrapperClass { get; set; }
+
+    [Parameter]
+    public IReadOnlyList<CategoryDto> Categories { get; set; } = [];
+
+    [Parameter]
+    public IReadOnlySet<Guid> PendingLikeCategoryIds { get; set; } = new HashSet<Guid>();
+
+    [Parameter]
+    public bool ShowLike { get; set; } = true;
+
+    [Parameter]
+    public bool CanLike { get; set; }
+
+    [Parameter]
+    public EventCallback<CategoryDto> OnLikeToggle { get; set; }
+
+    [Parameter]
+    public EventCallback<CategoryDto> OnSelected { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+            module = await JS.InvokeAsync<IJSObjectReference>(
+                "import",
+                "./Features/Categories/Components/CategoryCarousel.razor.js");
+    }
+
+    public async Task ScrollAsync(int direction)
+    {
+        if (module is not null)
+            await module.InvokeVoidAsync("scrollCategories", scroller, direction);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (module is not null)
+            await module.DisposeAsync();
+    }
+}

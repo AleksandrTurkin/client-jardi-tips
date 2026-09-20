@@ -1,0 +1,71 @@
+.category-carousel {
+    min-width: 0;
+}
+
+::deep .category-carousel__paper {
+    padding: 24px;
+}
+
+.category-carousel__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 1.5rem;
+}
+
+::deep .category-carousel__title {
+    font-weight: 700;
+    letter-spacing: -0.035em;
+}
+
+.category-carousel__controls {
+    display: flex;
+    flex: 0 0 auto;
+    gap: 8px;
+}
+
+::deep .category-carousel__controls .mud-icon-button {
+    border-radius: 50%;
+}
+
+.category-carousel__scroller {
+    display: flex;
+    gap: 24px;
+    margin-inline: -4px;
+    padding: 4px 4px 8px;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scroll-snap-type: inline mandatory;
+    scrollbar-color: var(--mud-palette-lines-default) transparent;
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+}
+
+.category-carousel__item {
+    flex: 0 0 clamp(270px, 32vw, 360px);
+    scroll-snap-align: start;
+}
+
+@media (max-width: 599.98px) {
+    ::deep .category-carousel__paper {
+        padding: 16px;
+    }
+
+    ::deep .category-carousel__title {
+        font-size: 2rem;
+    }
+
+    .category-carousel__header {
+        gap: 12px;
+        margin-bottom: 1rem;
+    }
+
+    .category-carousel__scroller {
+        gap: 16px;
+    }
+
+    .category-carousel__item {
+        flex-basis: min(84vw, 330px);
+    }
+}
