@@ -1,7 +1,7 @@
 using JardiTips.Client.Features.Categories.Models;
 using JardiTips.Client.Features.Home.Models;
 
-namespace JardiTips.Client.Application.Abstractions;
+namespace JardiTips.Client.Features.Home.Coordination;
 
 public interface IHomeCoordinator : IAsyncDisposable
 {
@@ -15,7 +15,7 @@ public interface IHomeCoordinator : IAsyncDisposable
 
     Task ReloadUserCategoriesAsync();
 
-    Task<HomeLikeResult> ToggleLikeAsync(CategoryDto category);
+    Task<HomeLikeOutcome> ToggleLikeAsync(CategoryDto category);
 
     void SelectCategory(CategoryDto category);
 

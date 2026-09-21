@@ -31,8 +31,8 @@ public partial class Home : IAsyncDisposable
 
     private async Task ToggleLikeAsync(CategoryDto category)
     {
-        var result = await HomeCoordinator.ToggleLikeAsync(category);
-        if (result.ShouldNotifyFailure)
+        var outcome = await HomeCoordinator.ToggleLikeAsync(category);
+        if (outcome == HomeLikeOutcome.Failed)
             Snackbar.Add("The like could not be updated. Please try again.", Severity.Error);
     }
 

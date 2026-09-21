@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using JardiTips.Client.Features.Categories.Models;
 
 namespace JardiTips.Client.Features.Home.Models;
@@ -6,21 +7,17 @@ public sealed record HomeState
 {
     public static readonly HomeState Initial = new();
 
-    public IReadOnlyList<CategoryDto> Categories { get; init; } = [];
+    public ImmutableArray<CategoryDto> Categories { get; init; } = [];
 
-    public IReadOnlyList<CategoryDto> TopCategories { get; init; } = [];
+    public ImmutableArray<CategoryDto> TopCategories { get; init; } = [];
 
-    public IReadOnlyList<CategoryDto> UserCategories { get; init; } = [];
+    public ImmutableArray<CategoryDto> UserCategories { get; init; } = [];
 
-    public IReadOnlySet<Guid> PendingLikeCategoryIds { get; init; } = new HashSet<Guid>();
+    public ImmutableHashSet<Guid> PendingLikeCategoryIds { get; init; } = [];
 
     public CategoryDto? SelectedCategory { get; init; }
 
-    public bool IsLoading { get; init; } = true;
+    public HomeLoadStatus CategoriesStatus { get; init; } = HomeLoadStatus.Loading;
 
-    public bool HasLoadError { get; init; }
-
-    public bool IsUserCategoriesLoading { get; init; }
-
-    public bool HasUserCategoriesLoadError { get; init; }
+    public HomeLoadStatus UserCategoriesStatus { get; init; } = HomeLoadStatus.NotStarted;
 }

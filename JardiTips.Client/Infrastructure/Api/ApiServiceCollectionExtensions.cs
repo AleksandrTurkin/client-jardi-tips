@@ -1,5 +1,6 @@
 using JardiTips.Client.Application.Abstractions;
 using JardiTips.Client.Application.Coordination;
+using JardiTips.Client.Features.Home.Coordination;
 using JardiTips.Client.Infrastructure.Authentication;
 using JardiTips.Client.Infrastructure.IndexedDb;
 using Microsoft.AspNetCore.Components.Authorization;

@@ -1,6 +1,8 @@
 @page "/"
 @using JardiTips.Client.Application.Abstractions
 @using JardiTips.Client.Features.Categories.Components
+@using JardiTips.Client.Features.Home.Coordination
+@using JardiTips.Client.Features.Home.Models
 @using JardiTips.Client.Shared.Components
 @implements IAsyncDisposable
 @inject IHomeCoordinator HomeCoordinator
@@ -12,7 +14,7 @@
 <AuthorizeView>
     <Authorized>
         <div class="home-collections">
-            @if (State.IsUserCategoriesLoading)
+            @if (State.UserCategoriesStatus == HomeLoadStatus.Loading)
             {
                 <MudPaper Square="true" Elevation="3" Class="category-carousel__paper">
                     <section class="category-carousel" aria-labelledby="my-collections-title">
@@ -32,7 +34,7 @@
                     </section>
                 </MudPaper>
             }
-            else if (State.HasUserCategoriesLoadError)
+            else if (State.UserCategoriesStatus == HomeLoadStatus.Failed)
             {
                 <MudPaper Square="true" Elevation="3" Class="category-carousel__paper">
                     <section class="category-carousel" aria-labelledby="my-collections-title">
@@ -50,7 +52,7 @@
                     </section>
                 </MudPaper>
             }
-            else if (State.UserCategories.Count == 0)
+            else if (State.UserCategories.IsEmpty)
             {
                 <MudPaper Square="true" Elevation="3" Class="category-carousel__paper">
                     <section class="category-carousel" aria-labelledby="my-collections-title">
@@ -80,14 +82,14 @@
     </Authorized>
 </AuthorizeView>
 
-@if (State.IsLoading)
+@if (State.CategoriesStatus == HomeLoadStatus.Loading)
 {
     <div role="status" aria-label="Loading categories">
         <CategoryCarouselSkeleton TitleWidth="240px" />
         <CategoryCarouselSkeleton TitleWidth="210px" Class="home-top-categories-skeleton" />
     </div>
 }
-else if (State.HasLoadError)
+else if (State.CategoriesStatus == HomeLoadStatus.Failed)
 {
     <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Class="home-alert">
         <MudText Typo="Typo.body1">Categories could not be loaded. Please try again.</MudText>
@@ -96,7 +98,7 @@ else if (State.HasLoadError)
         </MudButton>
     </MudAlert>
 }
-else if (State.Categories.Count == 0)
+else if (State.Categories.IsEmpty)
 {
     <MudPaper Outlined="true" Class="home-state home-state--empty">
         <MudIcon Icon="@Icons.Material.Outlined.Yard" Color="Color.Primary" Size="Size.Large" />
