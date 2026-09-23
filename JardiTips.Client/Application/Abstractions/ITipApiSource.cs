@@ -8,4 +8,8 @@ public interface ITipApiSource
     Task<PagedResult<TipDto>> GetAsync(
         TipsFilter filter,
         CancellationToken cancellationToken);
+
+    Task<TipCreateOutcome> CreateAsync(
+        CreateTipRequest request,
+        CancellationToken cancellationToken);
 }

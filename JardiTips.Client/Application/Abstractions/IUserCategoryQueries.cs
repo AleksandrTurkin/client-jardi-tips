@@ -9,4 +9,6 @@ public interface IUserCategoryQueries
     Task<UserCategoriesDto> GetAsync(
         CategoriesFilter filter,
         CancellationToken cancellationToken = default);
+
+    Task<UserCategoriesDto> RefreshAsync(CancellationToken cancellationToken = default);
 }

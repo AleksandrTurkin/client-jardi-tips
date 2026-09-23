@@ -136,6 +136,7 @@ else
 @if (State.SelectedCategory is not null)
 {
     <TipsViewer @key="State.SelectedCategory.Id"
-                Category="State.SelectedCategory"
-                OnClose="CloseTips" />
+                 Category="State.SelectedCategory"
+                 OnClose="CloseTips"
+                 OnTipSaved="HandleTipSavedAsync" />
 }

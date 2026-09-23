@@ -1,8 +1,11 @@
 @using JardiTips.Client.Application.Abstractions
 @using JardiTips.Client.Features.Categories.Models
+@using JardiTips.Client.Features.Tips.Coordination
 @using JardiTips.Client.Features.Tips.Models
 @implements IAsyncDisposable
 @inject ITipQueries TipQueries
+@inject ITipSaveCoordinator TipSaveCoordinator
+@inject ISnackbar Snackbar
 @inject ILogger<TipsViewer> Logger
 
 <MudOverlay Visible="true"
@@ -99,10 +102,16 @@
             </main>
 
             <footer class="tips-viewer-footer">
-                <MudIconButton Icon="@Icons.Material.Outlined.FavoriteBorder"
-                               Disabled="true"
-                               Color="Color.Default"
-                               aria-label="Like unavailable" />
+                @if (TipSaveCoordinator.IsAuthenticated)
+                {
+                    <MudTooltip Text="@SaveTooltip">
+                        <MudIconButton Icon="@SaveIcon"
+                                       Disabled="@(!CanSave)"
+                                       Color="@SaveColor"
+                                       OnClick="SaveCurrentTipAsync"
+                                       aria-label="@SaveTooltip" />
+                    </MudTooltip>
+                }
 
                 <MudText Typo="Typo.h6" Class="tips-viewer-count">
                     @CurrentPosition of @Category.TipsCount
@@ -126,6 +135,7 @@
     private bool isLoadingPage;
     private bool hasLoadError;
     private bool shouldFocus = true;
+    private bool coordinatorActive;
 
     [Parameter, EditorRequired]
     public CategoryDto Category { get; set; } = default!;
@@ -133,9 +143,31 @@
     [Parameter]
     public EventCallback OnClose { get; set; }
 
+    [Parameter]
+    public EventCallback OnTipSaved { get; set; }
+
     private TipDto? currentTip => currentIndex >= 0 && currentIndex < tips.Count
         ? tips[currentIndex]
         : null;
+
+    private TipSaveState SaveState => TipSaveCoordinator.State;
+
+    private bool CanSave => currentTip is not null
+        && !isLoading
+        && SaveState.IsOnline
+        && !SaveState.IsSaving;
+
+    private string SaveIcon => SaveState.IsSaving
+        ? Icons.Material.Rounded.BookmarkAdded
+        : Icons.Material.Rounded.BookmarkAdd;
+
+    private Color SaveColor => SaveState.IsSaving ? Color.Primary : Color.Default;
+
+    private string SaveTooltip => !SaveState.IsOnline
+        ? "Saving to Favorites requires an internet connection."
+        : SaveState.IsSaving
+            ? "Saving to Favorites…"
+            : "Save tip to Favorites";
 
     private bool CanMovePrevious => !isLoading && currentIndex > 0;
 
@@ -147,6 +179,14 @@
 
     protected override async Task OnParametersSetAsync()
     {
+        if (!coordinatorActive)
+        {
+            coordinatorActive = true;
+            TipSaveCoordinator.StateChanged += OnSaveStateChanged;
+            TipSaveCoordinator.Saved += OnTipSavedFromCoordinator;
+            await TipSaveCoordinator.ActivateAsync(loadTokenSource.Token);
+        }
+
         if (Category.Id == loadedCategoryId)
             return;
 
@@ -252,6 +292,40 @@
         }
     }
 
+    private async Task SaveCurrentTipAsync()
+    {
+        if (currentTip is null)
+            return;
+
+        var outcome = await TipSaveCoordinator.SaveAsync(currentTip, loadTokenSource.Token);
+
+        switch (outcome)
+        {
+            case TipSaveOutcome.Saved:
+                Snackbar.Add("Tip saved to Favorites.", Severity.Success);
+                break;
+            case TipSaveOutcome.Offline:
+                Snackbar.Add("Saving to Favorites requires an internet connection.", Severity.Warning);
+                break;
+            case TipSaveOutcome.Unauthorized:
+                Snackbar.Add("Please sign in to save tips.", Severity.Warning);
+                break;
+            case TipSaveOutcome.LimitReached:
+                Snackbar.Add("This collection already has 200 tips. Remove some before saving new ones.", Severity.Warning);
+                break;
+            case TipSaveOutcome.Cancelled:
+                break;
+            case TipSaveOutcome.Failed:
+                Snackbar.Add("The tip could not be saved. Please try again.", Severity.Error);
+                break;
+        }
+    }
+
+    private void OnSaveStateChanged() => _ = InvokeAsync(StateHasChanged);
+
+    private void OnTipSavedFromCoordinator() =>
+        _ = InvokeAsync(() => OnTipSaved.InvokeAsync());
+
     private Task CloseAsync() => OnClose.InvokeAsync();
 
     private Task HandleKeyDownAsync(KeyboardEventArgs args) =>
@@ -301,6 +375,14 @@
 
     public async ValueTask DisposeAsync()
     {
+        if (coordinatorActive)
+        {
+            coordinatorActive = false;
+            TipSaveCoordinator.StateChanged -= OnSaveStateChanged;
+            TipSaveCoordinator.Saved -= OnTipSavedFromCoordinator;
+            await TipSaveCoordinator.DeactivateAsync();
+        }
+
         await loadTokenSource.CancelAsync();
         loadTokenSource.Dispose();
     }

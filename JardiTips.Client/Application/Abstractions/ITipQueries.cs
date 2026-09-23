@@ -8,4 +8,6 @@ public interface ITipQueries
         Guid categoryId,
         int lastVisibleIndex = -1,
         CancellationToken cancellationToken = default);
+
+    Task InvalidateAsync(Guid categoryId, CancellationToken cancellationToken = default);
 }

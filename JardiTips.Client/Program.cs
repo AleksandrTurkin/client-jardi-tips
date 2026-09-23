@@ -17,5 +17,6 @@ builder.Services.AddCascadingAuthenticationState();
 
 var host = builder.Build();
 await host.Services.GetRequiredService<IAuthenticationService>().InitializeAsync();
+await host.Services.GetRequiredService<IBrowserConnectivity>().InitializeAsync();
 await host.Services.GetRequiredService<ICategoryStartup>().InitializeAsync();
 await host.RunAsync();
