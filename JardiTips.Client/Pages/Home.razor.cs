@@ -29,7 +29,7 @@ public partial class Home : IAsyncDisposable
         return Task.CompletedTask;
     }
 
-    private Task HandleTipSavedAsync() => HomeCoordinator.ReloadUserCategoriesAsync();
+    private Task HandleTipSavedAsync() => HomeCoordinator.RefreshUserCategoriesAsync();
 
     private async Task ToggleLikeAsync(CategoryDto category)
     {

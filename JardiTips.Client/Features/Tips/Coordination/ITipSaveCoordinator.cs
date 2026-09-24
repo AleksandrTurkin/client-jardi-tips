@@ -6,8 +6,6 @@ public interface ITipSaveCoordinator
 {
     event Action? StateChanged;
 
-    event Action? Saved;
-
     TipSaveState State { get; }
 
     bool IsAuthenticated { get; }

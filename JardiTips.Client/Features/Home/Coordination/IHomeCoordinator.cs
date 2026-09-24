@@ -15,6 +15,8 @@ public interface IHomeCoordinator : IAsyncDisposable
 
     Task ReloadUserCategoriesAsync();
 
+    Task RefreshUserCategoriesAsync();
+
     Task<HomeLikeOutcome> ToggleLikeAsync(CategoryDto category);
 
     void SelectCategory(CategoryDto category);

@@ -1,11 +1,9 @@
 @using JardiTips.Client.Application.Abstractions
 @using JardiTips.Client.Features.Categories.Models
-@using JardiTips.Client.Features.Tips.Coordination
+@using JardiTips.Client.Features.Tips.Components
 @using JardiTips.Client.Features.Tips.Models
 @implements IAsyncDisposable
 @inject ITipQueries TipQueries
-@inject ITipSaveCoordinator TipSaveCoordinator
-@inject ISnackbar Snackbar
 @inject ILogger<TipsViewer> Logger
 
 <MudOverlay Visible="true"
@@ -102,15 +100,9 @@
             </main>
 
             <footer class="tips-viewer-footer">
-                @if (TipSaveCoordinator.IsAuthenticated)
+                @if (Category.Type == CategoryType.System && currentTip is not null)
                 {
-                    <MudTooltip Text="@SaveTooltip">
-                        <MudIconButton Icon="@SaveIcon"
-                                       Disabled="@(!CanSave)"
-                                       Color="@SaveColor"
-                                       OnClick="SaveCurrentTipAsync"
-                                       aria-label="@SaveTooltip" />
-                    </MudTooltip>
+                    <TipSaveButton Tip="currentTip" OnSaved="OnTipSaved" />
                 }
 
                 <MudText Typo="Typo.h6" Class="tips-viewer-count">
@@ -135,7 +127,8 @@
     private bool isLoadingPage;
     private bool hasLoadError;
     private bool shouldFocus = true;
-    private bool coordinatorActive;
+    private bool renderRequested = true;
+    private CategoryDto? renderedCategory;
 
     [Parameter, EditorRequired]
     public CategoryDto Category { get; set; } = default!;
@@ -150,25 +143,6 @@
         ? tips[currentIndex]
         : null;
 
-    private TipSaveState SaveState => TipSaveCoordinator.State;
-
-    private bool CanSave => currentTip is not null
-        && !isLoading
-        && SaveState.IsOnline
-        && !SaveState.IsSaving;
-
-    private string SaveIcon => SaveState.IsSaving
-        ? Icons.Material.Rounded.BookmarkAdded
-        : Icons.Material.Rounded.BookmarkAdd;
-
-    private Color SaveColor => SaveState.IsSaving ? Color.Primary : Color.Default;
-
-    private string SaveTooltip => !SaveState.IsOnline
-        ? "Saving to Favorites requires an internet connection."
-        : SaveState.IsSaving
-            ? "Saving to Favorites…"
-            : "Save tip to Favorites";
-
     private bool CanMovePrevious => !isLoading && currentIndex > 0;
 
     private bool CanMoveNext => !isLoading
@@ -179,17 +153,10 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        if (!coordinatorActive)
-        {
-            coordinatorActive = true;
-            TipSaveCoordinator.StateChanged += OnSaveStateChanged;
-            TipSaveCoordinator.Saved += OnTipSavedFromCoordinator;
-            await TipSaveCoordinator.ActivateAsync(loadTokenSource.Token);
-        }
-
         if (Category.Id == loadedCategoryId)
             return;
 
+        renderRequested = true;
         await loadTokenSource.CancelAsync();
         loadTokenSource.Dispose();
         loadTokenSource = new CancellationTokenSource();
@@ -215,11 +182,18 @@
         finally
         {
             isLoading = false;
+            renderRequested = true;
         }
     }
 
+    protected override bool ShouldRender() =>
+        renderRequested || renderedCategory != Category;
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        renderRequested = false;
+        renderedCategory = Category;
+
         if (!shouldFocus)
             return;
 
@@ -230,7 +204,10 @@
     private Task MovePreviousAsync()
     {
         if (CanMovePrevious)
+        {
+            renderRequested = true;
             currentIndex--;
+        }
 
         return Task.CompletedTask;
     }
@@ -246,6 +223,7 @@
         if (currentIndex + 1 >= tips.Count)
             return;
 
+        renderRequested = true;
         currentIndex++;
         StateHasChanged();
         await RefreshCollectionAsync(currentIndex, loadTokenSource.Token);
@@ -253,6 +231,7 @@
 
     private async Task RetryAsync()
     {
+        renderRequested = true;
         hasLoadError = false;
         isLoading = true;
 
@@ -271,6 +250,7 @@
         finally
         {
             isLoading = false;
+            renderRequested = true;
         }
     }
 
@@ -285,46 +265,13 @@
             var collection = await TipQueries.GetAsync(Category.Id, lastVisibleIndex, cancellationToken);
             tips = collection.Tips;
             hasMore = collection.HasMore;
+            renderRequested = true;
         }
         finally
         {
             isLoadingPage = false;
         }
     }
-
-    private async Task SaveCurrentTipAsync()
-    {
-        if (currentTip is null)
-            return;
-
-        var outcome = await TipSaveCoordinator.SaveAsync(currentTip, loadTokenSource.Token);
-
-        switch (outcome)
-        {
-            case TipSaveOutcome.Saved:
-                Snackbar.Add("Tip saved to Favorites.", Severity.Success);
-                break;
-            case TipSaveOutcome.Offline:
-                Snackbar.Add("Saving to Favorites requires an internet connection.", Severity.Warning);
-                break;
-            case TipSaveOutcome.Unauthorized:
-                Snackbar.Add("Please sign in to save tips.", Severity.Warning);
-                break;
-            case TipSaveOutcome.LimitReached:
-                Snackbar.Add("This collection already has 200 tips. Remove some before saving new ones.", Severity.Warning);
-                break;
-            case TipSaveOutcome.Cancelled:
-                break;
-            case TipSaveOutcome.Failed:
-                Snackbar.Add("The tip could not be saved. Please try again.", Severity.Error);
-                break;
-        }
-    }
-
-    private void OnSaveStateChanged() => _ = InvokeAsync(StateHasChanged);
-
-    private void OnTipSavedFromCoordinator() =>
-        _ = InvokeAsync(() => OnTipSaved.InvokeAsync());
 
     private Task CloseAsync() => OnClose.InvokeAsync();
 
@@ -375,14 +322,6 @@
 
     public async ValueTask DisposeAsync()
     {
-        if (coordinatorActive)
-        {
-            coordinatorActive = false;
-            TipSaveCoordinator.StateChanged -= OnSaveStateChanged;
-            TipSaveCoordinator.Saved -= OnTipSavedFromCoordinator;
-            await TipSaveCoordinator.DeactivateAsync();
-        }
-
         await loadTokenSource.CancelAsync();
         loadTokenSource.Dispose();
     }

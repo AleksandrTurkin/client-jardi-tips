@@ -1,0 +1,92 @@
+@using JardiTips.Client.Features.Tips.Coordination
+@using JardiTips.Client.Features.Tips.Models
+@implements IAsyncDisposable
+@inject ITipSaveCoordinator TipSaveCoordinator
+@inject ISnackbar Snackbar
+
+@if (TipSaveCoordinator.IsAuthenticated)
+{
+    <MudTooltip Text="@SaveTooltip">
+        <MudIconButton Icon="@SaveIcon"
+                       Disabled="@(!CanSave)"
+                       Color="@SaveColor"
+                       OnClick="SaveAsync"
+                       aria-label="@SaveTooltip" />
+    </MudTooltip>
+}
+
+@code {
+    private readonly CancellationTokenSource lifetime = new();
+    private bool active;
+
+    [Parameter, EditorRequired]
+    public TipDto Tip { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback OnSaved { get; set; }
+
+    private TipSaveState State => TipSaveCoordinator.State;
+
+    private bool CanSave => State.IsOnline && !State.IsSaving;
+
+    private string SaveIcon => State.IsSaving
+        ? Icons.Material.Rounded.BookmarkAdded
+        : Icons.Material.Rounded.BookmarkAdd;
+
+    private Color SaveColor => State.IsSaving ? Color.Primary : Color.Default;
+
+    private string SaveTooltip => !State.IsOnline
+        ? "Saving to Favorites requires an internet connection."
+        : State.IsSaving
+            ? "Saving to Favorites…"
+            : "Save tip to Favorites";
+
+    protected override async Task OnInitializedAsync()
+    {
+        TipSaveCoordinator.StateChanged += OnStateChanged;
+        active = true;
+        await TipSaveCoordinator.ActivateAsync(lifetime.Token);
+    }
+
+    private async Task SaveAsync()
+    {
+        var outcome = await TipSaveCoordinator.SaveAsync(Tip, lifetime.Token);
+
+        switch (outcome)
+        {
+            case TipSaveOutcome.Saved:
+                Snackbar.Add("Tip saved to Favorites.", Severity.Success);
+                await OnSaved.InvokeAsync();
+                break;
+            case TipSaveOutcome.Offline:
+                Snackbar.Add("Saving to Favorites requires an internet connection.", Severity.Warning);
+                break;
+            case TipSaveOutcome.Unauthorized:
+                Snackbar.Add("Please sign in to save tips.", Severity.Warning);
+                break;
+            case TipSaveOutcome.LimitReached:
+                Snackbar.Add("This collection already has 200 tips. Remove some before saving new ones.", Severity.Warning);
+                break;
+            case TipSaveOutcome.Cancelled:
+                break;
+            case TipSaveOutcome.Failed:
+                Snackbar.Add("The tip could not be saved. Please try again.", Severity.Error);
+                break;
+        }
+    }
+
+    private void OnStateChanged() => _ = InvokeAsync(StateHasChanged);
+
+    public async ValueTask DisposeAsync()
+    {
+        if (active)
+        {
+            active = false;
+            TipSaveCoordinator.StateChanged -= OnStateChanged;
+            await TipSaveCoordinator.DeactivateAsync();
+        }
+
+        await lifetime.CancelAsync();
+        lifetime.Dispose();
+    }
+}

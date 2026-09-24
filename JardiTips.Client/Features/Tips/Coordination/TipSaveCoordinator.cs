@@ -35,8 +35,6 @@ public sealed class TipSaveCoordinator : ITipSaveCoordinator, IAsyncDisposable
 
     public event Action? StateChanged;
 
-    public event Action? Saved;
-
     public TipSaveState State
     {
         get
@@ -90,7 +88,6 @@ public sealed class TipSaveCoordinator : ITipSaveCoordinator, IAsyncDisposable
                 return TipSaveOutcome.LimitReached;
 
             await RefreshLocalCachesAsync(categoryId, cancellationToken);
-            Saved?.Invoke();
             return TipSaveOutcome.Saved;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -195,7 +192,6 @@ public sealed class TipSaveCoordinator : ITipSaveCoordinator, IAsyncDisposable
             }
 
             StateChanged = null;
-            Saved = null;
         }
 
         await Task.CompletedTask;
