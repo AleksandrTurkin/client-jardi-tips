@@ -12,4 +12,8 @@ public interface ITipApiSource
     Task<TipCreateOutcome> CreateAsync(
         CreateTipRequest request,
         CancellationToken cancellationToken);
+
+    Task UpdateAsync(Guid id, UpdateTipRequest request, CancellationToken cancellationToken);
+
+    Task DeleteAsync(Guid id, CancellationToken cancellationToken);
 }

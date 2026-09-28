@@ -1,0 +1,77 @@
+@using JardiTips.Client.Application.Abstractions
+@using JardiTips.Client.Features.Categories.Models
+@implements IDisposable
+@inject IBrowserConnectivity Connectivity
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="form">
+            <MudTextField T="string" Label="Name" @bind-Value="name" Immediate="true"
+                          Required="true" RequiredError="A name is required." MaxLength="250" Class="mb-4" />
+            <MudTextField T="string" Label="Description" @bind-Value="description" Immediate="true"
+                          Required="true" RequiredError="A description is required." MaxLength="2000" Lines="3" />
+        </MudForm>
+        @if (!Connectivity.IsOnline)
+        {
+            <MudAlert Severity="Severity.Warning" Class="mt-3">@(IsEdit ? "Editing" : "Creating") collections requires an internet connection.</MudAlert>
+        }
+        @if (!string.IsNullOrWhiteSpace(errorMessage))
+        {
+            <MudAlert Severity="Severity.Error" Class="mt-3">@errorMessage</MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(!Connectivity.IsOnline)" OnClick="CreateAsync">@(IsEdit ? "Save" : "Create collection")</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private MudForm form = default!;
+    private string name = string.Empty;
+    private string description = string.Empty;
+    private string? errorMessage;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = default!;
+
+    [Parameter]
+    public CategoryDto? Category { get; set; }
+
+    private bool IsEdit => Category is not null;
+
+    protected override void OnInitialized()
+    {
+        if (Category is not null)
+        {
+            name = Category.Name;
+            description = Category.Description;
+        }
+
+        Connectivity.ConnectivityChanged += OnConnectivityChanged;
+    }
+
+    private void Cancel() => Dialog.Cancel();
+
+    private async Task CreateAsync()
+    {
+        if (!Connectivity.IsOnline)
+            return;
+
+        await form.Validate();
+        if (!form.IsValid)
+            return;
+
+        if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(description))
+        {
+            errorMessage = "A name and description are required.";
+            return;
+        }
+
+        Dialog.Close(DialogResult.Ok(new CreateCategoryRequest(name.Trim(), description.Trim())));
+    }
+
+    private void OnConnectivityChanged(bool isOnline) => _ = InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Connectivity.ConnectivityChanged -= OnConnectivityChanged;
+}

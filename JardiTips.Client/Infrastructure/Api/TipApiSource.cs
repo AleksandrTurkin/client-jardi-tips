@@ -49,4 +49,18 @@ public sealed class TipApiSource(IApiClient apiClient) : ITipApiSource
             return TipCreateOutcome.LimitReached;
         }
     }
+
+    public Task UpdateAsync(Guid id, UpdateTipRequest request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        return apiClient.PutAsync($"tips/{id:D}", request, cancellationToken);
+    }
+
+    public Task DeleteAsync(Guid id, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return apiClient.DeleteAsync($"tips/{id:D}", cancellationToken);
+    }
 }

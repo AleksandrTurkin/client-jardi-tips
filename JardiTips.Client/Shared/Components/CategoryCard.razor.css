@@ -30,7 +30,17 @@
     transform: translateY(0);
 }
 
+.category-card__manage {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(4px);
+}
+
 .category-card__media {
+    position: relative;
     aspect-ratio: 16 / 9;
     overflow: hidden;
     background: var(--mud-palette-background-gray);

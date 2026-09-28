@@ -1,15 +1,21 @@
 @using JardiTips.Client.Application.Abstractions
 @using JardiTips.Client.Features.Categories.Models
 @using JardiTips.Client.Features.Tips.Components
+@using JardiTips.Client.Features.Tips.Coordination
 @using JardiTips.Client.Features.Tips.Models
 @implements IAsyncDisposable
 @inject ITipQueries TipQueries
+@inject IAuthenticationService AuthenticationService
+@inject IBrowserConnectivity Connectivity
+@inject TipManagementCoordinator TipManagement
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
 @inject ILogger<TipsViewer> Logger
 
 <MudOverlay Visible="true"
             DarkBackground="true"
             AutoClose="false"
-            Style="z-index: 1400;"
+            Style="z-index: 1200;"
             Class="tips-viewer-overlay">
     <div class="tips-viewer-host"
          tabindex="-1"
@@ -105,8 +111,35 @@
                     <TipSaveButton Tip="currentTip" OnSaved="OnTipSaved" />
                 }
 
-                <MudText Typo="Typo.h6" Class="tips-viewer-count">
-                    @CurrentPosition of @Category.TipsCount
+                @if (CanManage && AuthenticationService.IsAuthenticated)
+                {
+                    <div class="tips-viewer-management d-flex flex-wrap gap-2">
+                        <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                                   Disabled="@(isDialogOpen || isDeleting || !Connectivity.IsOnline)" OnClick="CreateAsync">
+                            Create tip
+                        </MudButton>
+                        @if (currentTip is not null)
+                        {
+                            <MudButton Variant="Variant.Text" Color="Color.Primary"
+                                       Disabled="@(isDialogOpen || isDeleting || !Connectivity.IsOnline)" OnClick="EditAsync">
+                                Edit
+                            </MudButton>
+                            <MudButton Variant="Variant.Text" Color="Color.Error"
+                                       Disabled="@(isDialogOpen || isDeleting || !Connectivity.IsOnline)" OnClick="DeleteAsync">
+                                @(isDeleting ? "Deleting…" : "Delete")
+                            </MudButton>
+                        }
+                    </div>
+                    @if (!Connectivity.IsOnline)
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Warning">
+                            Managing tips requires an internet connection.
+                        </MudText>
+                    }
+                }
+
+                <MudText Typo="Typo.h6" Class="tips-viewer-count ms-auto">
+                    @CurrentPosition of @TotalTipsCount
                 </MudText>
             </footer>
         </MudPaper>
@@ -128,10 +161,17 @@
     private bool hasLoadError;
     private bool shouldFocus = true;
     private bool renderRequested = true;
+    private bool isDialogOpen;
+    private bool isDeleting;
+    private int? tipCountOverride;
+    private CategoryDto? countCategory;
     private CategoryDto? renderedCategory;
 
     [Parameter, EditorRequired]
     public CategoryDto Category { get; set; } = default!;
+
+    [Parameter]
+    public bool CanManage { get; set; }
 
     [Parameter]
     public EventCallback OnClose { get; set; }
@@ -139,20 +179,33 @@
     [Parameter]
     public EventCallback OnTipSaved { get; set; }
 
+    [Parameter]
+    public EventCallback OnTipsChanged { get; set; }
+
     private TipDto? currentTip => currentIndex >= 0 && currentIndex < tips.Count
         ? tips[currentIndex]
         : null;
 
-    private bool CanMovePrevious => !isLoading && currentIndex > 0;
+    private bool CanMovePrevious => !isLoading && !isDialogOpen && !isDeleting && currentIndex > 0;
 
     private bool CanMoveNext => !isLoading
-        && currentIndex + 1 < Category.TipsCount
+        && !isDialogOpen
+        && !isDeleting
+        && currentIndex + 1 < TotalTipsCount
         && (currentIndex + 1 < tips.Count || hasMore);
 
     private int CurrentPosition => currentTip is null ? 0 : currentIndex + 1;
 
+    private int TotalTipsCount => tipCountOverride ?? Category.TipsCount;
+
+    protected override void OnInitialized() => Connectivity.ConnectivityChanged += OnConnectivityChanged;
+
     protected override async Task OnParametersSetAsync()
     {
+        if (countCategory is not null && (Category.Id != countCategory.Id || Category.TipsCount != countCategory.TipsCount))
+            tipCountOverride = null;
+        countCategory = Category;
+
         if (Category.Id == loadedCategoryId)
             return;
 
@@ -273,10 +326,153 @@
         }
     }
 
-    private Task CloseAsync() => OnClose.InvokeAsync();
+    private Task CreateAsync() => OpenEditorAsync(null);
+
+    private Task EditAsync() => OpenEditorAsync(currentTip);
+
+    private async Task OpenEditorAsync(TipDto? tip)
+    {
+        if (!CanManage || !AuthenticationService.IsAuthenticated || isDialogOpen || isDeleting)
+            return;
+
+        isDialogOpen = true;
+        renderRequested = true;
+        var categoryId = Category.Id;
+        try
+        {
+            var parameters = new DialogParameters
+            {
+                [nameof(TipEditorDialog.Category)] = Category,
+                [nameof(TipEditorDialog.Tip)] = tip
+            };
+            var options = new DialogOptions
+            {
+                FullWidth = true,
+                MaxWidth = MaxWidth.Medium,
+                CloseOnEscapeKey = false,
+                BackdropClick = false
+            };
+            var dialog = await DialogService.ShowAsync<TipEditorDialog>(tip is null ? "Create tip" : "Edit tip", parameters, options);
+            var result = await dialog.Result;
+
+            if (result is null || result.Canceled || result.Data is not TipManagementResult mutation
+                || loadTokenSource.IsCancellationRequested || Category.Id != categoryId)
+                return;
+
+            await RefreshAfterMutationAsync(0, mutation, tip is null ? "Tip created." : "Tip updated.", tip is null ? 1 : 0);
+        }
+        finally
+        {
+            isDialogOpen = false;
+            renderRequested = true;
+        }
+    }
+
+    private async Task DeleteAsync()
+    {
+        var tip = currentTip;
+        if (tip is null || !CanManage || !AuthenticationService.IsAuthenticated || isDialogOpen || isDeleting)
+            return;
+
+        isDialogOpen = true;
+        renderRequested = true;
+        var categoryId = Category.Id;
+        try
+        {
+            var dialog = await DialogService.ShowAsync<DeleteTipConfirmationDialog>(
+                "Delete tip",
+                new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.ExtraSmall, CloseOnEscapeKey = true });
+            var confirmation = await dialog.Result;
+            if (confirmation is null || confirmation.Canceled || confirmation.Data is not true
+                || loadTokenSource.IsCancellationRequested || Category.Id != categoryId)
+                return;
+
+            isDeleting = true;
+            renderRequested = true;
+            StateHasChanged();
+            var mutation = await TipManagement.DeleteAsync(tip, loadTokenSource.Token);
+            if (loadTokenSource.IsCancellationRequested || Category.Id != categoryId)
+                return;
+
+            if (mutation.Status == TipManagementStatus.Succeeded)
+                await RefreshAfterMutationAsync(currentIndex, mutation, "Tip deleted.", -1);
+            else if (mutation.Status != TipManagementStatus.Cancelled)
+                Snackbar.Add(MutationError(mutation), Severity.Error);
+        }
+        finally
+        {
+            isDeleting = false;
+            isDialogOpen = false;
+            renderRequested = true;
+        }
+    }
+
+    private async Task RefreshAfterMutationAsync(int index, TipManagementResult mutation, string successMessage, int countChange)
+    {
+        var expectedCount = Math.Max(0, TotalTipsCount + countChange);
+        try
+        {
+            tipCountOverride = expectedCount;
+            await OnTipsChanged.InvokeAsync();
+            if (!mutation.Refreshed)
+                await TipQueries.InvalidateAsync(Category.Id, loadTokenSource.Token);
+
+            tips = [];
+            hasMore = false;
+            currentIndex = 0;
+            isLoading = true;
+            renderRequested = true;
+            StateHasChanged();
+
+            do
+            {
+                var previousCount = tips.Count;
+                await RefreshCollectionAsync(index, loadTokenSource.Token);
+                if (tips.Count == previousCount)
+                    break;
+            }
+            while (hasMore && tips.Count <= index);
+
+            currentIndex = tips.Count == 0 ? 0 : Math.Min(index, tips.Count - 1);
+            hasLoadError = false;
+            Snackbar.Add(mutation.Refreshed ? successMessage : $"{successMessage} The collection summary may be out of date.",
+                mutation.Refreshed ? Severity.Success : Severity.Warning);
+        }
+        catch (OperationCanceledException) when (loadTokenSource.IsCancellationRequested)
+        {
+        }
+        catch (Exception exception)
+        {
+            Logger.LogWarning(exception, "Tip mutation succeeded but category {CategoryId} could not be reloaded.", Category.Id);
+            hasLoadError = true;
+            Snackbar.Add("The tip was changed, but the collection could not be refreshed. Try reloading it.", Severity.Warning);
+        }
+        finally
+        {
+            isLoading = false;
+            renderRequested = true;
+        }
+    }
+
+    private static string MutationError(TipManagementResult result) => result.Status switch
+    {
+        TipManagementStatus.Unauthorized => "Please sign in again to manage tips.",
+        TipManagementStatus.Offline => "Managing tips requires an internet connection.",
+        TipManagementStatus.NotFound => "This tip is no longer available.",
+        TipManagementStatus.Invalid => result.Message ?? "Please check the tip content.",
+        _ => "The tip could not be deleted. Please try again."
+    };
+
+    private void OnConnectivityChanged(bool isOnline) => _ = InvokeAsync(() =>
+    {
+        renderRequested = true;
+        StateHasChanged();
+    });
+
+    private Task CloseAsync() => isDialogOpen || isDeleting ? Task.CompletedTask : OnClose.InvokeAsync();
 
     private Task HandleKeyDownAsync(KeyboardEventArgs args) =>
-        string.Equals(args.Key, "Escape", StringComparison.Ordinal)
+        !isDialogOpen && !isDeleting && string.Equals(args.Key, "Escape", StringComparison.Ordinal)
             ? CloseAsync()
             : Task.CompletedTask;
 
@@ -322,6 +518,7 @@
 
     public async ValueTask DisposeAsync()
     {
+        Connectivity.ConnectivityChanged -= OnConnectivityChanged;
         await loadTokenSource.CancelAsync();
         loadTokenSource.Dispose();
     }

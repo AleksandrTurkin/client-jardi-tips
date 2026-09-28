@@ -3,6 +3,7 @@
 @using JardiTips.Client.Shared.Components
 @implements IAsyncDisposable
 @inject IJSRuntime JS
+@inject JardiTips.Client.Application.Abstractions.IBrowserConnectivity Connectivity
 
 <div class="category-carousel__wrapper @WrapperClass">
     <MudPaper Square="true" Elevation="3" Class="category-carousel__paper">
@@ -11,21 +12,36 @@
                 <MudText Typo="Typo.h3" HtmlTag="@HeadingTag" id="@TitleId" Class="category-carousel__title">
                     @Title
                 </MudText>
-                @if (Categories.Length > 0)
+                @if (Categories.Length > 0 || ShowCreate)
                 {
                     <div class="category-carousel__controls">
-                        <MudIconButton Icon="@Icons.Material.Rounded.ChevronLeft"
-                                       Color="Color.Primary"
-                                       Variant="Variant.Outlined"
-                                       aria-label="@($"Scroll {AriaLabel} left")"
-                                       aria-controls="@ScrollerId"
-                                       OnClick="@(() => ScrollAsync(-1))" />
-                        <MudIconButton Icon="@Icons.Material.Rounded.ChevronRight"
-                                       Color="Color.Primary"
-                                       Variant="Variant.Outlined"
-                                       aria-label="@($"Scroll {AriaLabel} right")"
-                                       aria-controls="@ScrollerId"
-                                       OnClick="@(() => ScrollAsync(1))" />
+                        @if (ShowCreate && Connectivity.IsOnline)
+                        {
+                            <AuthorizeView>
+                                <Authorized>
+                                    <MudIconButton Icon="@Icons.Material.Filled.Add"
+                                                   Color="Color.Primary"
+                                                   Variant="Variant.Outlined"
+                                                   aria-label="Create collection"
+                                                   OnClick="OnCreate" />
+                                </Authorized>
+                            </AuthorizeView>
+                        }
+                        @if (Categories.Length > 0)
+                        {
+                            <MudIconButton Icon="@Icons.Material.Rounded.ChevronLeft"
+                                           Color="Color.Primary"
+                                           Variant="Variant.Outlined"
+                                           aria-label="@($"Scroll {AriaLabel} left")"
+                                           aria-controls="@ScrollerId"
+                                           OnClick="@(() => ScrollAsync(-1))" />
+                            <MudIconButton Icon="@Icons.Material.Rounded.ChevronRight"
+                                           Color="Color.Primary"
+                                           Variant="Variant.Outlined"
+                                           aria-label="@($"Scroll {AriaLabel} right")"
+                                           aria-controls="@ScrollerId"
+                                           OnClick="@(() => ScrollAsync(1))" />
+                        }
                     </div>
                 }
             </div>
@@ -38,6 +54,9 @@
                                       CanLike="CanLike"
                                       IsLikeBusy="PendingLikeCategoryIds.Contains(category.Id)"
                                       OnLikeToggle="OnLikeToggle"
+                                      ShowManage="@(ShowManage && Connectivity.IsOnline)"
+                                      OnEdit="OnEdit"
+                                      OnDelete="OnDelete"
                                       OnSelected="OnSelected" />
                     </div>
                 }
@@ -81,10 +100,29 @@
     public bool CanLike { get; set; }
 
     [Parameter]
+    public bool ShowCreate { get; set; }
+
+    [Parameter]
+    public EventCallback OnCreate { get; set; }
+
+    [Parameter]
     public EventCallback<CategoryDto> OnLikeToggle { get; set; }
 
     [Parameter]
     public EventCallback<CategoryDto> OnSelected { get; set; }
+
+    [Parameter]
+    public bool ShowManage { get; set; }
+
+    [Parameter]
+    public EventCallback<CategoryDto> OnEdit { get; set; }
+
+    [Parameter]
+    public EventCallback<CategoryDto> OnDelete { get; set; }
+
+    protected override void OnInitialized() => Connectivity.ConnectivityChanged += OnConnectivityChanged;
+
+    private void OnConnectivityChanged(bool isOnline) => _ = InvokeAsync(StateHasChanged);
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -102,6 +140,7 @@
 
     public async ValueTask DisposeAsync()
     {
+        Connectivity.ConnectivityChanged -= OnConnectivityChanged;
         if (module is not null)
             await module.DisposeAsync();
     }

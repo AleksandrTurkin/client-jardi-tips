@@ -64,6 +64,7 @@ public static class ApiServiceCollectionExtensions
         services.AddScoped<ICategoryLikeService, CategoryLikeService>();
         services.AddScoped<IBrowserConnectivity, BrowserConnectivity>();
         services.AddScoped<ITipSaveCoordinator, TipSaveCoordinator>();
+        services.AddScoped<TipManagementCoordinator>();
         services.AddScoped<UserCategoryQueryService>();
         services.AddScoped<IUserCategoryQueries>(serviceProvider =>
             serviceProvider.GetRequiredService<UserCategoryQueryService>());

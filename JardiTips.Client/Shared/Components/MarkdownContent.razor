@@ -1,4 +1,6 @@
 @using Markdig
+@using Markdig.Syntax
+@using Markdig.Syntax.Inlines
 
 <div class="markdown-content">@RenderedContent</div>
 
@@ -10,5 +12,36 @@
     [Parameter]
     public string? Content { get; set; }
 
-    private MarkupString RenderedContent => new(Markdown.ToHtml(Content ?? string.Empty, Pipeline));
+    private MarkupString RenderedContent
+    {
+        get
+        {
+            var document = Markdown.Parse(Content ?? string.Empty, Pipeline);
+            foreach (var link in document.Descendants<LinkInline>())
+            {
+                if (IsSafeUrl(link.Url, link.IsImage))
+                    continue;
+
+                link.Url = "#";
+                link.GetDynamicUrl = null;
+            }
+
+            return new MarkupString(Markdown.ToHtml(document, Pipeline));
+        }
+    }
+
+    private static bool IsSafeUrl(string? url, bool isImage)
+    {
+        if (string.IsNullOrWhiteSpace(url) || url.Any(char.IsControl))
+            return false;
+
+        var value = url.Trim();
+        if (value.StartsWith("//", StringComparison.Ordinal) || value.StartsWith('\\'))
+            return false;
+
+        if (Uri.TryCreate(value, UriKind.Absolute, out var absolute))
+            return absolute.Scheme is "http" or "https" || !isImage && absolute.Scheme == "mailto";
+
+        return !value.Contains(':');
+    }
 }

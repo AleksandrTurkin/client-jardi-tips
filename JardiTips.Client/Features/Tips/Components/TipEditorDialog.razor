@@ -1,0 +1,162 @@
+@using JardiTips.Client.Application.Abstractions
+@using JardiTips.Client.Features.Categories.Models
+@using JardiTips.Client.Features.Tips.Coordination
+@using JardiTips.Client.Features.Tips.Models
+@implements IAsyncDisposable
+@inject TipManagementCoordinator TipManagement
+@inject IAuthenticationService AuthenticationService
+@inject IBrowserConnectivity Connectivity
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="form">
+            <MudTextField T="string"
+                          Label="Title"
+                          @bind-Value="title"
+                          Immediate="true"
+                          Required="true"
+                          RequiredError="A title is required."
+                          MaxLength="250"
+                          Disabled="@isSaving"
+                          Class="mb-4" />
+        </MudForm>
+        <MudText Typo="Typo.subtitle2" Class="mb-2">Content</MudText>
+        <TipMarkdownEditor @ref="editor" Content="@(Tip?.Content ?? string.Empty)" OnReady="EditorReady" OnError="EditorFailed" />
+        @if (!Connectivity.IsOnline)
+        {
+            <MudAlert Severity="Severity.Warning" Class="mt-3">Managing tips requires an internet connection.</MudAlert>
+        }
+        @if (!string.IsNullOrWhiteSpace(errorMessage))
+        {
+            <MudAlert Severity="Severity.Error" Class="mt-3">@errorMessage</MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" Disabled="@isSaving" OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   Disabled="@(isSaving || !editorReady || !TipManagement.IsOnline)" OnClick="SaveAsync">
+            @(isSaving ? "Saving…" : Tip is null ? "Create tip" : "Save changes")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private readonly CancellationTokenSource lifetime = new();
+    private MudForm form = default!;
+    private TipMarkdownEditor editor = default!;
+    private string title = string.Empty;
+    private string? errorMessage;
+    private bool editorReady;
+    private bool isSaving;
+    private bool disposed;
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public CategoryDto Category { get; set; } = default!;
+
+    [Parameter]
+    public TipDto? Tip { get; set; }
+
+    protected override void OnInitialized()
+    {
+        title = Tip?.Title ?? string.Empty;
+        AuthenticationService.UserChanged += OnUserChanged;
+        Connectivity.ConnectivityChanged += OnConnectivityChanged;
+    }
+
+    private void EditorReady() => editorReady = true;
+
+    private void EditorFailed() => errorMessage = "The Markdown editor could not be loaded.";
+
+    private void Cancel() => Dialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        if (isSaving || !editorReady)
+            return;
+
+        await form.Validate();
+        if (!form.IsValid)
+            return;
+
+        errorMessage = null;
+        if (string.IsNullOrWhiteSpace(title))
+        {
+            errorMessage = "A title is required.";
+            return;
+        }
+
+        string content;
+        try
+        {
+            content = await editor.GetMarkdownAsync();
+        }
+        catch (JSException)
+        {
+            errorMessage = "The Markdown content could not be read.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(content))
+        {
+            errorMessage = "Content is required.";
+            return;
+        }
+
+        isSaving = true;
+        try
+        {
+            var result = Tip is null
+                ? await TipManagement.CreateAsync(new CreateTipRequest(title.Trim(), content, Category.Id), lifetime.Token)
+                : await TipManagement.UpdateAsync(Tip, new UpdateTipRequest(title.Trim(), content), lifetime.Token);
+
+            if (lifetime.IsCancellationRequested)
+                return;
+
+            if (result.Status == TipManagementStatus.Succeeded)
+            {
+                Dialog.Close(DialogResult.Ok(result));
+                return;
+            }
+
+            errorMessage = result.Status switch
+            {
+                TipManagementStatus.Unauthorized => "Please sign in again to manage tips.",
+                TipManagementStatus.Offline => "Managing tips requires an internet connection.",
+                TipManagementStatus.LimitReached => "This collection already has 200 tips. Remove some before adding new ones.",
+                TipManagementStatus.NotFound => "This tip or collection is no longer available.",
+                TipManagementStatus.Invalid => string.Join(" ", result.Errors?.Values.SelectMany(messages => messages) ?? []),
+                TipManagementStatus.Cancelled => "The request was cancelled. Check the collection before trying again.",
+                _ => "The tip could not be saved. Please try again."
+            };
+            if (string.IsNullOrWhiteSpace(errorMessage))
+                errorMessage = result.Message ?? "Please check the title and content.";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private void OnUserChanged(System.Security.Claims.ClaimsPrincipal user) => _ = InvokeAsync(() =>
+    {
+        if (disposed)
+            return;
+
+        lifetime.Cancel();
+        Dialog.Cancel();
+    });
+
+    private void OnConnectivityChanged(bool isOnline) => _ = InvokeAsync(StateHasChanged);
+
+    public async ValueTask DisposeAsync()
+    {
+        disposed = true;
+        AuthenticationService.UserChanged -= OnUserChanged;
+        Connectivity.ConnectivityChanged -= OnConnectivityChanged;
+        await lifetime.CancelAsync();
+        lifetime.Dispose();
+    }
+}
