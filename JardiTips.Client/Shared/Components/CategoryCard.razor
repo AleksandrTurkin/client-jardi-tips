@@ -13,6 +13,19 @@
                  alt="@($"Cover for {Category.Name}")"
                  loading="lazy"
                  @onerror="HandleImageError" />
+            @if (CanManage)
+            {
+                <div class="category-card__manage" @onclick:stopPropagation="true" @onkeydown:stopPropagation="true">
+                    <MudMenu Icon="@Icons.Material.Filled.MoreVert"
+                             Size="Size.Small"
+                             AnchorOrigin="Origin.BottomRight"
+                             TransformOrigin="Origin.TopRight"
+                             aria-label="@($"Manage {Category.Name}")">
+                        <MudMenuItem Icon="@Icons.Material.Outlined.Edit" OnClick="EditAsync">Edit</MudMenuItem>
+                        <MudMenuItem Icon="@Icons.Material.Outlined.Delete" IconColor="Color.Error" OnClick="DeleteAsync">Delete</MudMenuItem>
+                    </MudMenu>
+                </div>
+            }
         </div>
         <MudCardContent Class="category-card__content pt-2 pb-0 ps-2 pe-2">
             <MudText Typo="Typo.h6" Class="category-card__title">@Category.Name</MudText>
@@ -70,6 +83,21 @@
 
     [Parameter]
     public EventCallback<CategoryDto> OnSelected { get; set; }
+
+    [Parameter]
+    public bool ShowManage { get; set; }
+
+    [Parameter]
+    public EventCallback<CategoryDto> OnEdit { get; set; }
+
+    [Parameter]
+    public EventCallback<CategoryDto> OnDelete { get; set; }
+
+    private bool CanManage => ShowManage && Category.Type == CategoryType.User;
+
+    private Task EditAsync() => OnEdit.InvokeAsync(Category);
+
+    private Task DeleteAsync() => OnDelete.InvokeAsync(Category);
 
     private bool IsLikeDisabled => !CanLike || IsLikeBusy;
 

@@ -29,5 +29,12 @@ public sealed class IndexedDbTipStore(BrowserDatabase database) : ITipStore
             cancellationToken);
     }
 
+    public Task DeleteAsync(Guid categoryId, CancellationToken cancellationToken)
+    {
+        ArgumentOutOfRangeException.ThrowIfEqual(categoryId, Guid.Empty);
+
+        return database.DeleteAsync(StoreName, GetSnapshotKey(categoryId), cancellationToken);
+    }
+
     private static string GetSnapshotKey(Guid categoryId) => categoryId.ToString("D");
 }

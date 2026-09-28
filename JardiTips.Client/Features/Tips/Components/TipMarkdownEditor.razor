@@ -1,0 +1,56 @@
+@implements IAsyncDisposable
+@inject IJSRuntime JSRuntime
+
+<div @ref="editorElement" aria-label="Tip content editor"></div>
+
+@code {
+    private ElementReference editorElement;
+    private IJSObjectReference? module;
+    private int editorId;
+
+    [Parameter]
+    public string Content { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback OnReady { get; set; }
+
+    [Parameter]
+    public EventCallback OnError { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        try
+        {
+            module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./tipMarkdownEditor.js");
+            editorId = await module.InvokeAsync<int>("create", editorElement, Content);
+            await OnReady.InvokeAsync();
+        }
+        catch (JSException)
+        {
+            await OnError.InvokeAsync();
+        }
+    }
+
+    public async Task<string> GetMarkdownAsync() => module is not null && editorId != 0
+        ? await module.InvokeAsync<string>("getMarkdown", editorId)
+        : string.Empty;
+
+    public async ValueTask DisposeAsync()
+    {
+        if (module is null)
+            return;
+
+        try
+        {
+            if (editorId != 0)
+                await module.InvokeVoidAsync("destroy", editorId);
+            await module.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+        }
+    }
+}

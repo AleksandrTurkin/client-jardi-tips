@@ -138,7 +138,9 @@ public sealed class ApiClient : IApiClient
             return await SendCoreAsync(request, cancellationToken);
 
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken.Trim());
-        using var retryRequest = await CloneRequestAsync(request, cancellationToken);
+        using var retryRequest = CanRetryAfterUnauthorized(request.Method)
+            ? await CloneRequestAsync(request, cancellationToken)
+            : null;
         var response = await SendCoreAsync(request, cancellationToken);
 
         if (response.StatusCode != HttpStatusCode.Unauthorized)
@@ -155,7 +157,7 @@ public sealed class ApiClient : IApiClient
             throw;
         }
 
-        if (string.IsNullOrWhiteSpace(refreshedAccessToken))
+        if (string.IsNullOrWhiteSpace(refreshedAccessToken) || retryRequest is null)
             return response;
 
         response.Dispose();
@@ -165,6 +167,11 @@ public sealed class ApiClient : IApiClient
 
         return await SendCoreAsync(retryRequest, cancellationToken);
     }
+
+    private static bool CanRetryAfterUnauthorized(HttpMethod method) =>
+        method == HttpMethod.Get
+        || method == HttpMethod.Head
+        || method == HttpMethod.Options;
 
     private Task<HttpResponseMessage> SendCoreAsync(
         HttpRequestMessage request,

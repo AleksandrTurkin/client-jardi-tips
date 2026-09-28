@@ -1,10 +1,11 @@
 .tips-viewer-host {
+    --tips-viewer-top: 64px;
     box-sizing: border-box;
     display: grid;
     position: fixed;
-    inset: 0;
+    inset: var(--tips-viewer-top) 0 0;
     width: 100vw;
-    height: 100dvh;
+    height: calc(100dvh - var(--tips-viewer-top));
     padding: 12px;
     place-items: center;
     outline: none;
@@ -14,7 +15,7 @@
     display: grid;
     grid-template-rows: auto minmax(0, 1fr) auto;
     width: min(900px, calc(100vw - 24px));
-    height: min(860px, calc(100dvh - 24px));
+    height: min(860px, calc(100dvh - var(--tips-viewer-top) - 24px));
     overflow: hidden;
     border: 1px solid var(--mud-palette-lines-default);
     background: var(--mud-palette-surface);
@@ -35,6 +36,7 @@
 
 .tips-viewer-footer {
     border-top: 1px solid var(--mud-palette-lines-default);
+    flex-wrap: wrap;
 }
 
 .tips-viewer-host ::deep .tips-viewer-title {
@@ -101,9 +103,13 @@
     font-variant-numeric: tabular-nums;
 }
 
-@media (max-width: 599.98px) {
+@media (max-width: 600px) {
+    .tips-viewer-host {
+        --tips-viewer-top: 56px;
+    }
+
     .tips-viewer-host ::deep .tips-viewer-panel {
-        height: calc(100dvh - 24px);
+        height: calc(100dvh - var(--tips-viewer-top) - 24px);
     }
 
     .tips-viewer-header,

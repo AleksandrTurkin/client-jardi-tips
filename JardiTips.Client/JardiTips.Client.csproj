@@ -21,7 +21,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Infrastructure\Browser\" />
     <Folder Include="Shared\Styling\" />
     <Folder Include="wwwroot\sample-data\" />
   </ItemGroup>

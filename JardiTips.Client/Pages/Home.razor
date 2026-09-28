@@ -7,6 +7,10 @@
 @implements IAsyncDisposable
 @inject IHomeCoordinator HomeCoordinator
 @inject IAuthenticationService AuthenticationService
+@inject IBrowserConnectivity Connectivity
+@inject IUserCategoryApiSource UserCategoryApiSource
+@inject IUserCategoryQueries UserCategoryQueries
+@inject IDialogService DialogService
 @inject ISnackbar Snackbar
 
 <PageTitle>Jardi Tips</PageTitle>
@@ -22,6 +26,11 @@
                             <MudText Typo="Typo.h3" HtmlTag="h1" id="my-collections-title" Class="category-carousel__title">
                                 My Collections
                             </MudText>
+                            @if (Connectivity.IsOnline)
+                            {
+                                <MudIconButton Icon="@Icons.Material.Filled.Add" Color="Color.Primary" Variant="Variant.Outlined"
+                                               aria-label="Create collection" Disabled="@isCreatingCollection" OnClick="CreateCollectionAsync" />
+                            }
                         </div>
                         <div class="category-carousel__scroller" role="status" aria-label="Loading my collections">
                             @for (var index = 0; index < 3; index++)
@@ -42,6 +51,11 @@
                             <MudText Typo="Typo.h3" HtmlTag="h1" id="my-collections-title" Class="category-carousel__title">
                                 My Collections
                             </MudText>
+                            @if (Connectivity.IsOnline)
+                            {
+                                <MudIconButton Icon="@Icons.Material.Filled.Add" Color="Color.Primary" Variant="Variant.Outlined"
+                                               aria-label="Create collection" Disabled="@isCreatingCollection" OnClick="CreateCollectionAsync" />
+                            }
                         </div>
                         <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">
                             <MudText Typo="Typo.body1">Your collections could not be loaded.</MudText>
@@ -60,6 +74,11 @@
                             <MudText Typo="Typo.h3" HtmlTag="h1" id="my-collections-title" Class="category-carousel__title">
                                 My Collections
                             </MudText>
+                            @if (Connectivity.IsOnline)
+                            {
+                                <MudIconButton Icon="@Icons.Material.Filled.Add" Color="Color.Primary" Variant="Variant.Outlined"
+                                               aria-label="Create collection" Disabled="@isCreatingCollection" OnClick="CreateCollectionAsync" />
+                            }
                         </div>
                         <MudText Typo="Typo.body1" Color="Color.Secondary">
                             You do not have any collections yet.
@@ -76,6 +95,11 @@
                                   ScrollerId="my-collections-scroller"
                                   Categories="State.UserCategories"
                                   ShowLike="false"
+                                  ShowCreate="@(!isCreatingCollection)"
+                                  OnCreate="CreateCollectionAsync"
+                                  ShowManage="@(!isCreatingCollection)"
+                                  OnEdit="EditCollectionAsync"
+                                  OnDelete="DeleteCollectionAsync"
                                   OnSelected="SelectCategory" />
             }
         </div>
@@ -136,6 +160,9 @@ else
 @if (State.SelectedCategory is not null)
 {
     <TipsViewer @key="State.SelectedCategory.Id"
-                Category="State.SelectedCategory"
-                OnClose="CloseTips" />
+                 Category="State.SelectedCategory"
+                 CanManage="@CanManageSelectedCategory"
+                 OnClose="CloseTips"
+                 OnTipsChanged="HandleTipsChangedAsync"
+                 OnTipSaved="HandleTipSavedAsync" />
 }

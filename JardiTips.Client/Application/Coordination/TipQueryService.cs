@@ -63,6 +63,22 @@ public sealed class TipQueryService(
         }
     }
 
+    public async Task InvalidateAsync(Guid categoryId, CancellationToken cancellationToken = default)
+    {
+        ArgumentOutOfRangeException.ThrowIfEqual(categoryId, Guid.Empty);
+
+        await GetInitializationTask().WaitAsync(cancellationToken);
+        await queryLock.WaitAsync(cancellationToken);
+        try
+        {
+            await store.DeleteAsync(categoryId, cancellationToken);
+        }
+        finally
+        {
+            queryLock.Release();
+        }
+    }
+
     private Task GetInitializationTask()
     {
         lock (initializationLock)

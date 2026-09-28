@@ -7,6 +7,30 @@ public sealed class UserCategoryApiSource(IApiClient apiClient) : IUserCategoryA
 {
     private const int MaximumPageSize = 100;
 
+    public Task<Guid> CreateAsync(string name, string description, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return apiClient.PostAsync<CreateCategoryRequest, Guid>(
+            "categories",
+            new CreateCategoryRequest(name, description),
+            cancellationToken);
+    }
+
+    public Task UpdateAsync(Guid id, string name, string description, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return apiClient.PutAsync(
+            $"categories/{id}",
+            new UpdateCategoryRequest(name, description),
+            cancellationToken);
+    }
+
+    public Task DeleteAsync(Guid id, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return apiClient.DeleteAsync($"categories/{id}", cancellationToken);
+    }
+
     public Task<UserCategoriesDto> GetAsync(
         CategoriesFilter filter,
         CancellationToken cancellationToken)

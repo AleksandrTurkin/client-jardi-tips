@@ -7,6 +7,7 @@ namespace JardiTips.Client.Infrastructure.Api;
 public sealed class TipApiSource(IApiClient apiClient) : ITipApiSource
 {
     private const int PageSize = 20;
+    private const string LimitReachedCode = "tip-category-limit-reached";
 
     public Task<PagedResult<TipDto>> GetAsync(
         TipsFilter filter,
@@ -26,5 +27,40 @@ public sealed class TipApiSource(IApiClient apiClient) : ITipApiSource
         return apiClient.GetAsync<PagedResult<TipDto>>(
             $"tips?{string.Join('&', query)}",
             cancellationToken);
+    }
+
+    public async Task<TipCreateOutcome> CreateAsync(
+        CreateTipRequest request,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        try
+        {
+            await apiClient.PostAsync<CreateTipRequest, Guid>("tips", request, cancellationToken);
+            return TipCreateOutcome.Created;
+        }
+        catch (ApiException exception) when (string.Equals(
+            exception.ProblemDetails.Code,
+            LimitReachedCode,
+            StringComparison.Ordinal))
+        {
+            return TipCreateOutcome.LimitReached;
+        }
+    }
+
+    public Task UpdateAsync(Guid id, UpdateTipRequest request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        return apiClient.PutAsync($"tips/{id:D}", request, cancellationToken);
+    }
+
+    public Task DeleteAsync(Guid id, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return apiClient.DeleteAsync($"tips/{id:D}", cancellationToken);
     }
 }

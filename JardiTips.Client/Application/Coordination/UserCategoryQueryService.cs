@@ -58,6 +58,34 @@ public sealed class UserCategoryQueryService : IUserCategoryQueries, IDisposable
         return new UserCategoriesDto(snapshot.Favorite, new PagedResult<CategoryDto>(pageContext, data));
     }
 
+    public async Task<UserCategoriesDto> RefreshAsync(CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(disposed, this);
+        await authenticationService.InitializeAsync(cancellationToken);
+        var currentSession = GetSession();
+
+        QuerySession refreshSession;
+        lock (synchronizationLock)
+        {
+            ObjectDisposedException.ThrowIf(disposed, this);
+            currentSession.Token.ThrowIfCancellationRequested();
+            refreshSession = currentSession;
+            refreshSession.SynchronizationTask = SynchronizeCoreAsync(refreshSession);
+        }
+
+        using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+            cancellationToken,
+            refreshSession.Token);
+        var token = linkedCancellation.Token;
+
+        var snapshot = await refreshSession.SynchronizationTask.WaitAsync(token);
+        token.ThrowIfCancellationRequested();
+
+        return new UserCategoriesDto(
+            snapshot.Favorite,
+            new PagedResult<CategoryDto>(null, snapshot.Categories));
+    }
+
     private async Task<UserCategorySnapshot> GetSnapshotAsync(CancellationToken cancellationToken)
     {
         ObjectDisposedException.ThrowIf(disposed, this);

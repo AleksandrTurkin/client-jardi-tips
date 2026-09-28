@@ -78,6 +78,15 @@ public sealed class HomeCoordinator : IHomeCoordinator
         return LoadUserCategoriesAsync(sessionToken);
     }
 
+    public Task RefreshUserCategoriesAsync()
+    {
+        if (!authenticationService.IsAuthenticated)
+            return Task.CompletedTask;
+
+        var sessionToken = requestLifetime.BeginSession();
+        return LoadUserCategoriesAsync(sessionToken, showLoading: false);
+    }
+
     public async Task<HomeLikeOutcome> ToggleLikeAsync(CategoryDto category)
     {
         ArgumentNullException.ThrowIfNull(category);
@@ -188,7 +197,9 @@ public sealed class HomeCoordinator : IHomeCoordinator
         }
     }
 
-    private async Task LoadUserCategoriesAsync(CancellationToken sessionToken)
+    private async Task LoadUserCategoriesAsync(
+        CancellationToken sessionToken,
+        bool showLoading = true)
     {
         var userId = authenticationService.CurrentUser.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (userId is null)
@@ -198,7 +209,8 @@ public sealed class HomeCoordinator : IHomeCoordinator
         }
 
         var request = requestLifetime.BeginUserLoad(userId);
-        UpdateState(HomeStateTransitions.BeginUserCategoriesLoad);
+        if (showLoading)
+            UpdateState(HomeStateTransitions.BeginUserCategoriesLoad);
 
         try
         {
@@ -217,7 +229,8 @@ public sealed class HomeCoordinator : IHomeCoordinator
         {
             logger.LogWarning(exception, "Failed to load user collections for the home page.");
 
-            if (requestLifetime.IsCurrent(request)
+            if (showLoading
+                && requestLifetime.IsCurrent(request)
                 && IsCurrentUser(request.UserId))
             {
                 UpdateState(HomeStateTransitions.FailUserCategoriesLoad);

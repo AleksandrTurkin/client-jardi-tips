@@ -31,6 +31,10 @@ internal static class HomeStateTransitions
         state with
         {
             UserCategories = userCategories,
+            SelectedCategory = state.SelectedCategory is { } selected
+                && state.UserCategories.Any(category => category.Id == selected.Id)
+                    ? userCategories.FirstOrDefault(category => category.Id == selected.Id)
+                    : state.SelectedCategory,
             UserCategoriesStatus = HomeLoadStatus.Loaded
         };
 

@@ -1,7 +1,9 @@
 using JardiTips.Client.Application.Abstractions;
 using JardiTips.Client.Application.Coordination;
 using JardiTips.Client.Features.Home.Coordination;
+using JardiTips.Client.Features.Tips.Coordination;
 using JardiTips.Client.Infrastructure.Authentication;
+using JardiTips.Client.Infrastructure.Browser;
 using JardiTips.Client.Infrastructure.IndexedDb;
 using Microsoft.AspNetCore.Components.Authorization;
 
@@ -60,6 +62,9 @@ public static class ApiServiceCollectionExtensions
         services.AddScoped<ICategoryStartup>(serviceProvider =>
             serviceProvider.GetRequiredService<CategoryQueryService>());
         services.AddScoped<ICategoryLikeService, CategoryLikeService>();
+        services.AddScoped<IBrowserConnectivity, BrowserConnectivity>();
+        services.AddScoped<ITipSaveCoordinator, TipSaveCoordinator>();
+        services.AddScoped<TipManagementCoordinator>();
         services.AddScoped<UserCategoryQueryService>();
         services.AddScoped<IUserCategoryQueries>(serviceProvider =>
             serviceProvider.GetRequiredService<UserCategoryQueryService>());
